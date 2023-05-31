@@ -1,1 +1,5 @@
+---
+title: Blogs
+---
+
 ## Hello world!

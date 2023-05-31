@@ -1,7 +1,5 @@
 title: LibreOffice CI Test Selection with Machine Learning
-author:
-  name: Baole Fang
-  email: baole.fang@gmail.com
-
+author: Baole Fang
+email: baole.fang@gmail.com
 description: GSoC'23 Project
 theme: minima

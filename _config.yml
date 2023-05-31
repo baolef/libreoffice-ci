@@ -3,4 +3,8 @@ author: Baole Fang
 email: baole.fang@gmail.com
 description: GSoC'23 Project
 theme: minima
-skin: dark
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+minima:
+  skin: dark

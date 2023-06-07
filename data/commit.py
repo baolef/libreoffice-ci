@@ -427,8 +427,10 @@ class Commit:
             commit: Commit,
             code_analysis_server: rust_code_analysis_server.RustCodeAnalysisServer
     ) -> None:
+        self.set_files(list(commit.stats.files.keys()), {})
         self.node = commit.hexsha
         self.author = commit.author.name
+        self.bug_id = None
         for word in commit.summary.split(' '):
             if word.startswith("tdf#"):
                 i = 4
@@ -439,8 +441,9 @@ class Commit:
                 except:
                     self.bug_id = None
         self.desc = commit.summary
-        self.pushdate = commit.committed_date
+        self.pushdate = commit.committed_datetime
         self.author_email = commit.author.email
+        self.reviewers = commit.committer.name
         self.ignored = False
         self.source_code_added = 0
         self.other_added = 0
@@ -448,7 +451,6 @@ class Commit:
         self.source_code_deleted = 0
         self.other_deleted = 0
         self.test_deleted = 0
-        self.types = set()
         self.metrics = get_metrics_dict()
         self.metrics_diff = get_total_metrics_dict()
         self.types: Set[str] = set()

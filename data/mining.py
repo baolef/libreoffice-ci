@@ -4,7 +4,13 @@ from git import Repo
 from commit import Commit
 import rust_code_analysis_server
 from tqdm import tqdm
+import json
 from experiences import calculate_experiences
+
+
+def write(obj: list[Commit], filename):
+    with open(filename, 'w') as f:
+        json.dump(obj, f, indent=2)
 
 
 def get_commits(repo_path, limit=None, save=True):
@@ -20,6 +26,8 @@ def get_commits(repo_path, limit=None, save=True):
     calculate_experiences(output, first_pushdate, save)
     for i in range(len(output)):
         output[i] = output[i].to_dict()
+    if save:
+        write(output, 'commits.json')
     return output
 
 

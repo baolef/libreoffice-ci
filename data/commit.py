@@ -2,7 +2,7 @@
 import copy
 import os
 import logging
-from git import Commit
+from git import Commit, Repo
 from typing import *
 import rust_code_analysis_server
 
@@ -425,7 +425,6 @@ class Commit:
     def __init__(
             self,
             commit: Commit,
-            code_analysis_server: rust_code_analysis_server.RustCodeAnalysisServer
     ) -> None:
         self.set_files(list(commit.stats.files.keys()), {})
         self.node = commit.hexsha
@@ -455,84 +454,6 @@ class Commit:
         self.metrics_diff = get_total_metrics_dict()
         self.types: Set[str] = set()
         self.functions: dict[str, list[dict]] = {}
-
-        source_code_sizes = []
-        other_sizes = []
-        test_sizes = []
-        metrics_file_count = 0
-
-        for file, count in commit.stats.files.items():
-            diff = commit.parents[0].diff(commit, paths=[file], create_patch=True)[0]
-            after = None
-            size = None
-            if not diff.deleted_file:
-                after = (commit.tree / file).data_stream.read()
-                size = after.count(b'\n')
-
-            type_ = get_type(file)
-            self.types.add(type_)
-            if type_ == "Test":
-                self.test_added += count['insertions']
-                self.test_deleted += count['deletions']
-                if size:
-                    test_sizes.append(size)
-            elif type_ in SOURCE_CODE_TYPES_TO_EXT:
-                self.source_code_added += count['insertions']
-                self.source_code_deleted += count['deletions']
-                if size:
-                    source_code_sizes.append(size)
-
-                after_metrics = code_analysis_server.metrics(file, after, unit=False)
-                if after_metrics.get("spaces"):
-                    metrics_file_count += 1
-                    deleted_lines, added_lines, new_file = calculate_lines(commit, file)
-                    before_metrics = {}
-                    if not new_file:
-                        before = (commit.parents[0].tree / file).data_stream.read()
-                        before_metrics = code_analysis_server.metrics(file, before, unit=False)
-
-                    self.set_commit_metrics(
-                        file,
-                        deleted_lines,
-                        added_lines,
-                        before_metrics,
-                        after_metrics,
-                    )
-
-            else:
-                self.other_added += count['insertions']
-                self.other_deleted += count['deletions']
-                if size:
-                    other_sizes.append(size)
-
-        self.seniority_author = 0.0
-        self.total_source_code_file_size = sum(source_code_sizes)
-        self.average_source_code_file_size = self.total_source_code_file_size / len(
-            source_code_sizes) if source_code_sizes else 0
-        self.maximum_source_code_file_size = max(source_code_sizes, default=0)
-        self.minimum_source_code_file_size = min(source_code_sizes, default=0)
-        self.source_code_files_modified_num = len(source_code_sizes)
-        self.total_other_file_size = sum(other_sizes)
-        self.average_other_file_size = self.total_other_file_size / len(other_sizes) if other_sizes else 0
-        self.maximum_other_file_size = max(other_sizes, default=0)
-        self.minimum_other_file_size = min(other_sizes, default=0)
-        self.other_files_modified_num = len(other_sizes)
-        self.total_test_file_size = sum(test_sizes)
-        self.average_test_file_size = self.total_test_file_size / len(test_sizes) if test_sizes else 0
-        self.maximum_test_file_size = max(test_sizes, default=0)
-        self.minimum_test_file_size = min(test_sizes, default=0)
-        self.test_files_modified_num = len(test_sizes)
-
-        if metrics_file_count:
-            for metric in METRIC_NAMES:
-                self.metrics[f"{metric}_avg"] = (
-                        self.metrics[f"{metric}_total"] / metrics_file_count
-                )
-        else:
-            # these values are initialized with sys.maxsize (because we take the min)
-            # if no files, then reset them to 0 (it'd be stupid to have min > max)
-            for metric in METRIC_NAMES:
-                self.metrics[f"{metric}_min"] = 0
 
     def __eq__(self, other):
         assert isinstance(other, Commit)
@@ -632,3 +553,83 @@ class Commit:
         d["types"] = list(d["types"])
         d["pushdate"] = str(d["pushdate"])
         return dict(d)
+
+    def transform(self,commit,code_analysis_server: rust_code_analysis_server.RustCodeAnalysisServer):
+        source_code_sizes = []
+        other_sizes = []
+        test_sizes = []
+        metrics_file_count = 0
+
+        for file, count in commit.stats.files.items():
+            diff = commit.parents[0].diff(commit, paths=[file], create_patch=True)[0]
+            after = None
+            size = None
+            if not diff.deleted_file:
+                after = (commit.tree / file).data_stream.read()
+                size = after.count(b'\n')
+
+            type_ = get_type(file)
+            self.types.add(type_)
+            if type_ == "Test":
+                self.test_added += count['insertions']
+                self.test_deleted += count['deletions']
+                if size:
+                    test_sizes.append(size)
+            elif type_ in SOURCE_CODE_TYPES_TO_EXT:
+                self.source_code_added += count['insertions']
+                self.source_code_deleted += count['deletions']
+                if size:
+                    source_code_sizes.append(size)
+
+                after_metrics = code_analysis_server.metrics(file, after, unit=False)
+                if after_metrics.get("spaces"):
+                    metrics_file_count += 1
+                    deleted_lines, added_lines, new_file = calculate_lines(commit, file)
+                    before_metrics = {}
+                    if not new_file:
+                        before = (commit.parents[0].tree / file).data_stream.read()
+                        before_metrics = code_analysis_server.metrics(file, before, unit=False)
+
+                    self.set_commit_metrics(
+                        file,
+                        deleted_lines,
+                        added_lines,
+                        before_metrics,
+                        after_metrics,
+                    )
+
+            else:
+                self.other_added += count['insertions']
+                self.other_deleted += count['deletions']
+                if size:
+                    other_sizes.append(size)
+
+        self.seniority_author = 0.0
+        self.total_source_code_file_size = sum(source_code_sizes)
+        self.average_source_code_file_size = self.total_source_code_file_size / len(
+            source_code_sizes) if source_code_sizes else 0
+        self.maximum_source_code_file_size = max(source_code_sizes, default=0)
+        self.minimum_source_code_file_size = min(source_code_sizes, default=0)
+        self.source_code_files_modified_num = len(source_code_sizes)
+        self.total_other_file_size = sum(other_sizes)
+        self.average_other_file_size = self.total_other_file_size / len(other_sizes) if other_sizes else 0
+        self.maximum_other_file_size = max(other_sizes, default=0)
+        self.minimum_other_file_size = min(other_sizes, default=0)
+        self.other_files_modified_num = len(other_sizes)
+        self.total_test_file_size = sum(test_sizes)
+        self.average_test_file_size = self.total_test_file_size / len(test_sizes) if test_sizes else 0
+        self.maximum_test_file_size = max(test_sizes, default=0)
+        self.minimum_test_file_size = min(test_sizes, default=0)
+        self.test_files_modified_num = len(test_sizes)
+
+        if metrics_file_count:
+            for metric in METRIC_NAMES:
+                self.metrics[f"{metric}_avg"] = (
+                        self.metrics[f"{metric}_total"] / metrics_file_count
+                )
+        else:
+            # these values are initialized with sys.maxsize (because we take the min)
+            # if no files, then reset them to 0 (it'd be stupid to have min > max)
+            for metric in METRIC_NAMES:
+                self.metrics[f"{metric}_min"] = 0
+        return self

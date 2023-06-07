@@ -15,8 +15,8 @@ def write(obj: list[Commit], filename):
 
 def get_commits(repo_path, limit=None, save=True):
     repo = Repo(repo_path)
-    commits = list(repo.iter_commits(max_count=limit))
-    first_pushdate = commits[-1].committed_datetime
+    commits = list(reversed(list(repo.iter_commits(max_count=limit))))
+    first_pushdate = commits[0].committed_datetime
     output = []
     for commit in tqdm(commits):
         if commit.summary == 'Update git submodules':

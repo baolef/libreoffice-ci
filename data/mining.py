@@ -23,6 +23,8 @@ def _fetch(line):
 def read(lines):
     mapping=defaultdict(set)
     for line in tqdm(lines):
+        if line[7]=='no-githash-info':
+            continue
         key = (line[6],line[7])
         if line[10] == 'SUCCESS':
             mapping[key]=mapping[key]

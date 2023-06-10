@@ -9,6 +9,7 @@ import json
 from experiences import calculate_experiences
 from multiprocessing import Pool
 import csv
+from collections import defaultdict
 
 
 def fetch(repo: Repo, lines):
@@ -19,17 +20,20 @@ def fetch(repo: Repo, lines):
 
 def read(repo: Repo, lines):
     commits = []
+    mapping=defaultdict(set)
     for line in tqdm(lines):
         hash = line[7]
         if line[10] == 'SUCCESS':
-            commits.append(Commit(repo.commit(hash)))
+            mapping[hash]=mapping[hash]
+            # commits.append(Commit(repo.commit(hash)))
         else:
-            tests = []
             for i in range(11, len(line), 2):
-                if line[i] in ['cppunit,tests', 'junit,tests', 'python,tests']:
-                    tests.append(line[i + 1].split()[2])
-            if tests:
-                commits.append(Commit(repo.commit(hash), tests))
+                if line[i]=='uitest,tests':
+                    mapping[hash].add(line[i + 1].split()[2])
+                elif line[i] in ['cppunit,tests', 'junit,tests', 'python,tests']:
+                    mapping[hash].add(line[i + 1].split()[3])
+    for key,value in mapping.items():
+        commits.append(Commit(repo.commit(key),list(value)))
     commits.sort(key=lambda x: x.pushdate)
     return commits
     # return list(reversed(commits))
@@ -99,4 +103,4 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
 
 if __name__ == '__main__':
     root = '~/research/libre/libreoffice'
-    data = get_features(root, 'jenkinsfullstats.csv', 1024)
+    data = get_features(root, 'jenkinsfullstats.csv', download=True)

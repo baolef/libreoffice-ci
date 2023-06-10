@@ -8,6 +8,38 @@ from tqdm import tqdm
 import json
 from experiences import calculate_experiences
 from multiprocessing import Pool
+import csv
+
+
+def fetch(repo: Repo, lines):
+    remote = repo.remotes[0]
+    for line in tqdm(lines):
+        remote.fetch(line[6])
+
+
+def read(repo: Repo, lines):
+    commits = []
+    for line in tqdm(lines):
+        hash = line[7]
+        if line[10] == 'SUCCESS':
+            commits.append(Commit(repo.commit(hash)))
+        else:
+            tests = []
+            for i in range(11, len(line), 2):
+                if line[i] in ['cppunit,tests', 'junit,tests', 'python,tests']:
+                    tests.append(line[i + 1].split()[2])
+            if tests:
+                commits.append(Commit(repo.commit(hash), tests))
+    commits.sort(key=lambda x: x.pushdate)
+    return commits
+    # return list(reversed(commits))
+
+
+def get_rows(filename, limit):
+    with open(filename) as f:
+        file = csv.reader(f, delimiter='\t')
+        lines = list(file)[1:-1]
+    return lines[:limit]
 
 
 def write(obj: list[Commit], filename):
@@ -35,10 +67,16 @@ def get_commits(repo: Repo, limit):
     return list(reversed(commits))
 
 
-def get_features(repo_path, limit=None, save=True, single_process=False):
+def get_features(repo_path, filename, limit=None, download=False, save=True, single_process=False):
     repo = Repo(repo_path)
 
-    commits = get_commits(repo, limit)
+    rows = get_rows(filename, limit)
+    if download:
+        fetch(repo, rows)
+
+    commits = read(repo, rows)
+
+    # commits = get_commits(repo, limit)
     first_pushdate = commits[0].pushdate
 
     if single_process:
@@ -61,4 +99,4 @@ def get_features(repo_path, limit=None, save=True, single_process=False):
 
 if __name__ == '__main__':
     root = '~/research/libre/libreoffice'
-    data = get_features(root, 1024)
+    data = get_features(root, 'jenkinsfullstats.csv', 1024)

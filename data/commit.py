@@ -425,6 +425,7 @@ class Commit:
     def __init__(
             self,
             commit: Commit,
+            failures=[]
     ) -> None:
         self.set_files(list(commit.stats.files.keys()), {})
         self.node = commit.hexsha
@@ -440,9 +441,9 @@ class Commit:
                 except:
                     self.bug_id = None
         self.desc = commit.summary
-        self.pushdate = commit.committed_datetime
+        self.pushdate = commit.committed_datetime.astimezone()
         self.author_email = commit.author.email
-        self.reviewers = commit.committer.name
+        self.reviewers = [commit.committer.name]
         self.ignored = False
         self.source_code_added = 0
         self.other_added = 0
@@ -454,6 +455,7 @@ class Commit:
         self.metrics_diff = get_total_metrics_dict()
         self.types: Set[str] = set()
         self.functions: dict[str, list[dict]] = {}
+        self.failures=failures
 
     def __eq__(self, other):
         assert isinstance(other, Commit)

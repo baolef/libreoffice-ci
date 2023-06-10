@@ -17,6 +17,8 @@ def fetch(repo: Repo, lines):
     for line in tqdm(lines):
         remote.fetch(line[6])
 
+def _fetch(line):
+    REMOTE.fetch(line[6])
 
 def read(repo: Repo, lines):
     commits = []
@@ -56,6 +58,10 @@ def _init_process(server) -> None:
     REPO = Repo(root)
     SERVER = server
 
+def _init_fetch() -> None:
+    global REMOTE
+    REMOTE = Repo(root).remotes[0]
+
 
 def _transform(commit):
     c = REPO.commit(commit.node)
@@ -75,8 +81,13 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
     repo = Repo(repo_path)
 
     rows = get_rows(filename, limit)
+    # hashes=set(row[6] for row in rows)
     if download:
-        fetch(repo, rows)
+        if single_process:
+            fetch(repo, rows)
+        else:
+            with Pool(os.cpu_count(), initializer=_init_fetch) as p:
+                list(tqdm(p.imap(_fetch, rows), total=len(rows)))
 
     commits = read(repo, rows)
 

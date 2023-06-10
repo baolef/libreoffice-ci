@@ -18,28 +18,21 @@ def fetch(repo: Repo, lines):
         remote.fetch(line[6])
 
 def _fetch(line):
-    REMOTE.fetch(line[6])
+    REMOTE.fetch(line)
 
-def read(repo: Repo, lines):
-    commits = []
+def read(lines):
     mapping=defaultdict(set)
     for line in tqdm(lines):
-        hash = line[7]
+        key = (line[6],line[7])
         if line[10] == 'SUCCESS':
-            mapping[hash]=mapping[hash]
-            # commits.append(Commit(repo.commit(hash)))
+            mapping[key]=mapping[key]
         else:
             for i in range(11, len(line), 2):
                 if line[i]=='uitest,tests':
-                    mapping[hash].add(line[i + 1].split()[2])
+                    mapping[key].add(line[i + 1].split()[2])
                 elif line[i] in ['cppunit,tests', 'junit,tests', 'python,tests']:
-                    mapping[hash].add(line[i + 1].split()[3])
-    for key,value in mapping.items():
-        commits.append(Commit(repo.commit(key),list(value)))
-    commits.sort(key=lambda x: x.pushdate)
-    return commits
-    # return list(reversed(commits))
-
+                    mapping[key].add(line[i + 1].split()[3])
+    return mapping
 
 def get_rows(filename, limit):
     with open(filename) as f:
@@ -62,19 +55,25 @@ def _init_fetch() -> None:
     global REMOTE
     REMOTE = Repo(root).remotes[0]
 
+def _init_repo()  -> None:
+    global REPO, REMOTE
+    REPO = Repo(root)
+    REMOTE = REPO.remotes[0]
 
 def _transform(commit):
     c = REPO.commit(commit.node)
     return commit.transform(c, SERVER)
 
 
-def get_commits(repo: Repo, limit):
-    commits = []
-    for commit in repo.iter_commits(max_count=limit):
-        if commit.summary == 'Update git submodules':
-            continue
-        commits.append(Commit(commit))
-    return list(reversed(commits))
+def _get(item):
+    key,value=item
+    try:
+        commit = Commit(REPO.commit(key[1]),list(value))
+    except:
+        REMOTE.fetch(key[0])
+        commit = Commit(REPO.commit(key[1]), list(value))
+    finally:
+        return commit
 
 
 def get_features(repo_path, filename, limit=None, download=False, save=True, single_process=False):
@@ -82,14 +81,24 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
 
     rows = get_rows(filename, limit)
     # hashes=set(row[6] for row in rows)
-    if download:
-        if single_process:
-            fetch(repo, rows)
-        else:
-            with Pool(os.cpu_count(), initializer=_init_fetch) as p:
-                list(tqdm(p.imap(_fetch, rows), total=len(rows)))
+    # if download:
+    #     if single_process:
+    #         fetch(repo, hashes)
+    #     else:
+    #         with Pool(os.cpu_count(), initializer=_init_fetch) as p:
+    #             list(tqdm(p.imap(_fetch, hashes), total=len(hashes)))
 
-    commits = read(repo, rows)
+    raw = read(rows)
+    if single_process:
+        commits = []
+        for item in tqdm(raw.items()):
+            commits.append(_get(item))
+    else:
+        with Pool(os.cpu_count()*2, initializer=_init_repo) as p:
+            commits = list(tqdm(p.imap(_get, raw.items()), total=len(raw)))
+
+    commits.sort(key=lambda x: x.pushdate)
+
 
     # commits = get_commits(repo, limit)
     first_pushdate = commits[0].pushdate
@@ -114,4 +123,4 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
 
 if __name__ == '__main__':
     root = '~/research/libre/libreoffice'
-    data = get_features(root, 'jenkinsfullstats.csv', download=True)
+    data = get_features(root, 'jenkinsfullstats.csv')

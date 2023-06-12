@@ -82,13 +82,6 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
     repo = Repo(repo_path)
 
     rows = get_rows(filename, limit)
-    # hashes=set(row[6] for row in rows)
-    # if download:
-    #     if single_process:
-    #         fetch(repo, hashes)
-    #     else:
-    #         with Pool(os.cpu_count(), initializer=_init_fetch) as p:
-    #             list(tqdm(p.imap(_fetch, hashes), total=len(hashes)))
 
     raw = read(rows)
     if single_process:
@@ -96,7 +89,7 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
         for item in tqdm(raw.items()):
             commits.append(_get(item))
     else:
-        with Pool(os.cpu_count()*2, initializer=_init_repo) as p:
+        with Pool(os.cpu_count(), initializer=_init_repo) as p:
             commits = list(tqdm(p.imap(_get, raw.items()), total=len(raw)))
 
     commits.sort(key=lambda x: x.pushdate)

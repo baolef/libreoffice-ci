@@ -10,6 +10,9 @@ from experiences import calculate_experiences
 from multiprocessing import Pool
 import csv
 from collections import defaultdict
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def fetch(repo: Repo, lines):
@@ -64,7 +67,11 @@ def _init_repo()  -> None:
 
 def _transform(commit):
     c = REPO.commit(commit.node)
-    return commit.transform(c, SERVER)
+    try:
+        return commit.transform(c, SERVER)
+    except:
+        logger.debug(f'commit {commit.node} transform error')
+        return None
 
 
 def _get(item):

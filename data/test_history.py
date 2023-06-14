@@ -2,27 +2,35 @@
 import itertools
 
 from tqdm import tqdm
-
-from mining import get_rows, read
 from collections import Counter, defaultdict
+from util import *
+from typing import Any, Generator
+from experiences import ExpQueue
+
+HISTORICAL_TIMESPAN = 4500
+
+with open('tests.txt', 'rb') as f:
+    ALL_TESTS = pickle.load(f)
+
 
 def get_pushes(filename, limit):
-    rows = get_rows(filename, limit)
-    raw = read(rows)
-    return raw
+    commits = read_file(filename)[:limit]
+    return commits
+
+
+failing_together = {}
+
 
 def generate_failing_together_probabilities(
-    granularity: str,
-    push_data: dict,
-    push_data_count: int,
-    up_to: str = None,
+        granularity: str,
+        push_data: list,
+        up_to: str = None,
 ) -> None:
     # `task2 failure -> task1 failure` separately, as they could be different.
 
-
     count_runs = Counter()
     count_single_failures = Counter()
-    count_both_failures= Counter()
+    count_both_failures = Counter()
 
     def count_runs_and_failures(tasks):
         for task1, task2 in itertools.combinations(sorted(tasks), 2):
@@ -37,41 +45,14 @@ def generate_failing_together_probabilities(
                 count_single_failures[(task1, task2)] += 1
 
     all_available_configs = set()
-    available_configs_by_group = defaultdict(set)
 
-    for key, value in tqdm(push_data.items()):
-        rev=key[1]
-        failures=set(value)
-
-
-    for (
-        revisions,
-        fix_revision,
-        tasks,
-        likely_regressions,
-        candidate_regressions,
-    ) in tqdm(push_data, total=push_data_count):
-        failures = set(likely_regressions + candidate_regressions)
-        all_tasks_set = set(tasks) | failures
+    for commit in tqdm(push_data):
+        all_tasks_set = ALL_TESTS
         all_tasks = list(all_tasks_set)
-
-        # At config/group granularity, only consider redundancy between the same manifest
-        # on different configurations, and not between manifests too.
-        if granularity == "config_group":
-            all_available_configs.update(config for config, group in all_tasks)
-            for config, group in all_tasks:
-                available_configs_by_group[group].add(config)
-
-            groups = itertools.groupby(
-                sorted(all_tasks, key=lambda x: x[1]), key=lambda x: x[1]
-            )
-            for manifest, group_tasks in groups:
-                count_runs_and_failures(group_tasks)
-        else:
-            all_available_configs |= all_tasks_set
-            count_runs_and_failures(all_tasks)
-
-        if up_to is not None and revisions[0] == up_to:
+        all_available_configs |= all_tasks_set
+        failures = commit['failures']
+        count_runs_and_failures(all_tasks)
+        if up_to is not None and commit['node'] == up_to:
             break
 
     stats = {}
@@ -103,7 +84,7 @@ def generate_failing_together_probabilities(
 
     logger.info("Redundancies with the highest support and confidence:")
     for couple, (support, confidence) in sorted(
-        stats.items(), key=lambda k: (-k[1][1], -k[1][0])
+            stats.items(), key=lambda k: (-k[1][1], -k[1][0])
     )[:7]:
         failure_count = count_both_failures[couple]
         run_count = count_runs[couple]
@@ -119,7 +100,7 @@ def generate_failing_together_probabilities(
 
     logger.info("Redundancies with the highest confidence and lowest support:")
     for couple, (support, confidence) in sorted(
-        stats.items(), key=lambda k: (-k[1][1], k[1][0])
+            stats.items(), key=lambda k: (-k[1][1], k[1][0])
     )[:7]:
         failure_count = count_both_failures[couple]
         run_count = count_runs[couple]
@@ -134,7 +115,7 @@ def generate_failing_together_probabilities(
         )
 
     failing_together: dict = {}
-    count_redundancies: collections.Counter = collections.Counter()
+    count_redundancies = Counter()
     for couple, (support, confidence) in stats.items():
         if confidence == 1.0:
             count_redundancies["==100%"] += 1
@@ -181,21 +162,222 @@ def generate_failing_together_probabilities(
     for percentage, count in count_redundancies.most_common():
         logger.info("%d with %f%% confidence", count, percentage)
 
-    failing_together_db = get_failing_together_db(granularity, False)
+    failing_together["$ALL_CONFIGS$"] = all_available_configs
 
-    failing_together_db[b"$ALL_CONFIGS$"] = pickle.dumps(list(all_available_configs))
+    write_file(failing_together, 'failing_together.gz')
 
-    if granularity == "config_group":
-        failing_together_db[b"$CONFIGS_BY_GROUP$"] = pickle.dumps(
-            dict(available_configs_by_group)
+
+def _read_and_update_past_failures(
+        past_failures, type_, runnable, items, push_num, is_regression
+):
+    values_total = []
+    values_prev_700 = []
+    values_prev_1400 = []
+    values_prev_2800 = []
+
+    key = f"{type_}${runnable}$"
+
+    for item in items:
+        full_key = key + item
+
+        is_new = full_key not in past_failures
+
+        if is_new:
+            if not is_regression:
+                continue
+
+            cur = ExpQueue(round(push_num / 100), int(HISTORICAL_TIMESPAN / 100) + 1, 0)
+        else:
+            cur = past_failures[full_key]
+
+        value = cur[round(push_num / 100)]
+
+        values_total.append(value)
+        values_prev_700.append(value - cur[round((push_num - 700) / 100)])
+        values_prev_1400.append(value - cur[round((push_num - 1400) / 100)])
+        values_prev_2800.append(value - cur[round((push_num - 2800) / 100)])
+
+        if is_regression:
+            cur[round(push_num / 100)] = value + 1
+            if is_new:
+                past_failures[full_key] = cur
+
+    return (
+        sum(values_total),
+        sum(values_prev_700),
+        sum(values_prev_1400),
+        sum(values_prev_2800),
+    )
+
+
+def generate_data(
+        past_failures: dict,
+        commit: dict,
+        push_num: int,
+        runnables: list,
+        failures: list
+):
+    for runnable in runnables:
+        is_regression = runnable in failures
+
+        (
+            total_failures,
+            past_700_pushes_failures,
+            past_1400_pushes_failures,
+            past_2800_pushes_failures,
+        ) = _read_and_update_past_failures(
+            past_failures, "all", runnable, ("all",), push_num, is_regression
         )
 
-    for key, value in failing_together.items():
-        failing_together_db[failing_together_key(key)] = pickle.dumps(value)
+        (
+            total_types_failures,
+            past_700_pushes_types_failures,
+            past_1400_pushes_types_failures,
+            past_2800_pushes_types_failures,
+        ) = _read_and_update_past_failures(
+            past_failures,
+            "type",
+            runnable,
+            commit["types"],
+            push_num,
+            is_regression,
+        )
 
-    close_failing_together_db(granularity)
+        (
+            total_files_failures,
+            past_700_pushes_files_failures,
+            past_1400_pushes_files_failures,
+            past_2800_pushes_files_failures,
+        ) = _read_and_update_past_failures(
+            past_failures,
+            "file",
+            runnable,
+            commit["files"],
+            push_num,
+            is_regression,
+        )
+
+        (
+            total_directories_failures,
+            past_700_pushes_directories_failures,
+            past_1400_pushes_directories_failures,
+            past_2800_pushes_directories_failures,
+        ) = _read_and_update_past_failures(
+            past_failures,
+            "directory",
+            runnable,
+            commit["directories"],
+            push_num,
+            is_regression,
+        )
+
+        # (
+        #     total_components_failures,
+        #     past_700_pushes_components_failures,
+        #     past_1400_pushes_components_failures,
+        #     past_2800_pushes_components_failures,
+        # ) = _read_and_update_past_failures(
+        #     past_failures,
+        #     "component",
+        #     runnable,
+        #     commit["components"],
+        #     push_num,
+        #     is_regression,
+        # )
+
+        obj = {
+            "name": runnable,
+            "failures": total_failures,
+            "failures_past_700_pushes": past_700_pushes_failures,
+            "failures_past_1400_pushes": past_1400_pushes_failures,
+            "failures_past_2800_pushes": past_2800_pushes_failures,
+            "failures_in_types": total_types_failures,
+            "failures_past_700_pushes_in_types": past_700_pushes_types_failures,
+            "failures_past_1400_pushes_in_types": past_1400_pushes_types_failures,
+            "failures_past_2800_pushes_in_types": past_2800_pushes_types_failures,
+            "failures_in_files": total_files_failures,
+            "failures_past_700_pushes_in_files": past_700_pushes_files_failures,
+            "failures_past_1400_pushes_in_files": past_1400_pushes_files_failures,
+            "failures_past_2800_pushes_in_files": past_2800_pushes_files_failures,
+            "failures_in_directories": total_directories_failures,
+            "failures_past_700_pushes_in_directories": past_700_pushes_directories_failures,
+            "failures_past_1400_pushes_in_directories": past_1400_pushes_directories_failures,
+            "failures_past_2800_pushes_in_directories": past_2800_pushes_directories_failures,
+            # "failures_in_components": total_components_failures,
+            # "failures_past_700_pushes_in_components": past_700_pushes_components_failures,
+            # "failures_past_1400_pushes_in_components": past_1400_pushes_components_failures,
+            # "failures_past_2800_pushes_in_components": past_2800_pushes_components_failures,
+        }
+
+        yield obj
 
 
 def generate_history(filename, limit=None):
-    pushes=get_pushes(filename,limit)
+    commits = get_pushes(filename, limit)
+    generate_failing_together_probabilities("label", commits)
 
+    def generate_all_data() -> Generator[dict[str, Any], None, None]:
+        # global past_failures
+        past_failures = {}
+
+        push_num = 0
+
+        # Store all runnables in the past_failures DB so it can be used in the evaluation phase.
+        past_failures["all_runnables"] = ALL_TESTS
+        # XXX: Should we recreate the DB from scratch if the previous all_runnables are not the
+        # same as the current ones?
+
+        skipped_no_commits = 0
+        skipped_too_big_commits = 0
+        skipped_no_runnables = 0
+
+        for commit in tqdm(commits):
+            push_num += 1
+
+            # XXX: For now, skip commits which are too large.
+            # In the future we can either:
+            #  - Improve shelve perf and go back to consider all files;
+            #  - Consider only files which appear with a given frequency, like the "files" feature in commit_features;
+            #  - Keep a limit of number of files.
+            if len(commit["files"]) > 50:
+                skipped_too_big_commits += 1
+                continue
+
+            # If we considered all_runnables, we'd generate a huge amount of data.
+            # We consider only the runnables which run in this push, and the possible and likely regressions
+            # from this push. We can't consider all runnables because we can't be sure that a task that didn't
+            # run on a push would have been successful.
+            runnables_to_consider = ALL_TESTS
+
+            # Sync DB every 250 pushes, so we cleanup the shelve cache (we'd run OOM otherwise!).
+            # if i % 250 == 0:
+            #     past_failures.sync()
+
+            result_data = []
+            for data in generate_data(
+                    past_failures,
+                    commit,
+                    push_num,
+                    runnables_to_consider,
+                    commit['failures']
+            ):
+                result_data.append(data)
+
+            yield {
+                "revs": [commit['node']],
+                "data": result_data,
+            }
+
+        logger.info("saved push data nodes: %d", len(commits))
+        logger.info("skipped %d (no commits in our DB)", skipped_no_commits)
+        logger.info("skipped %d (too big commits)", skipped_too_big_commits)
+        logger.info("skipped %d (no interesting runnables)", skipped_no_runnables)
+
+        past_failures["push_num"] = push_num
+
+    test_scheduling_db = list(generate_all_data())
+    write_file(test_scheduling_db, 'test_scheduling.gz')
+
+
+if __name__ == '__main__':
+    generate_history('commits.gz')

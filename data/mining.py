@@ -5,12 +5,14 @@ from git import Repo
 from commit import Commit
 import rust_code_analysis_server
 from tqdm import tqdm
-import json
 from experiences import calculate_experiences
 from multiprocessing import Pool
 import csv
 from collections import defaultdict
 from util import *
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def fetch(repo: Repo, lines):
@@ -71,7 +73,7 @@ def _transform(commit):
     try:
         return commit.transform(c, SERVER)
     except:
-        logger.info(f'commit {commit.node} transform error')
+        logger.debug(f'commit {commit.node} transform error')
         return None
 
 
@@ -102,7 +104,6 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
 
     commits.sort(key=lambda x: x.pushdate)
 
-    # commits = get_commits(repo, limit)
     first_pushdate = commits[0].pushdate
 
     if single_process:
@@ -115,6 +116,7 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
             commits = list(tqdm(p.imap(_transform, commits), total=len(commits)))
 
     code_analysis_server.terminate()
+    commits = [commit for commit in commits if commit]
     calculate_experiences(commits, first_pushdate, save)
     for i in range(len(commits)):
         commits[i] = commits[i].to_dict()
@@ -125,4 +127,4 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
 
 if __name__ == '__main__':
     root = '~/research/libre/libreoffice'
-    data = get_features(root, 'jenkinsfullstats.csv', 2 ** 10)
+    data = get_features(root, 'jenkinsfullstats.csv', 256)

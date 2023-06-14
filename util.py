@@ -1,10 +1,6 @@
 # Created by Baole Fang at 6/13/23
 import gzip
-import logging
 import pickle
-
-
-logger = logging.getLogger(__name__)
 
 
 def write_file(obj, filename: str):

@@ -1,11 +1,14 @@
 # Created by Baole Fang at 6/12/23
 import itertools
+import logging
 
 from tqdm import tqdm
 from collections import Counter, defaultdict
 from util import *
 from typing import Any, Generator
 from experiences import ExpQueue
+
+logger = logging.getLogger(__name__)
 
 HISTORICAL_TIMESPAN = 4500
 
@@ -16,9 +19,6 @@ with open('tests.txt', 'rb') as f:
 def get_pushes(filename, limit):
     commits = read_file(filename)[:limit]
     return commits
-
-
-failing_together = {}
 
 
 def generate_failing_together_probabilities(

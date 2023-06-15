@@ -1,5 +1,5 @@
 # Created by Baole Fang at 6/12/23
-
+import argparse
 import itertools
 import logging
 
@@ -12,7 +12,21 @@ from experiences import ExpQueue
 logger = logging.getLogger(__name__)
 
 HISTORICAL_TIMESPAN = 4500
-ALL_TESTS = set(read('data/tests.json'))
+
+
+def read_all_unit_tests(filename):
+    tests = set()
+    tags = ['CUT', 'UIT', 'JUT', 'PYT']
+    for i in range(len(tags)):
+        tags[i] = f'[build {tags[i]}]'
+    with open(filename) as f:
+        for line in f.readlines():
+            if line[:11] in tags:
+                tests.add(line.split()[-1])
+    return tests
+
+
+ALL_TESTS = read_all_unit_tests('data/log.txt')
 
 
 def get_pushes(filename, limit):
@@ -377,4 +391,8 @@ def generate_history(filename, limit=None):
 
 
 if __name__ == '__main__':
-    generate_history('data/commits.json')
+    parser = argparse.ArgumentParser(description='Extract features of unit tests')
+    parser.add_argument("--path", type=str, default='data/commits.json', help="Path to commit features")
+    parser.add_argument("--limit", type=int, default=None, help="Limit of the number of pushes")
+    args = parser.parse_args()
+    generate_history(args.path, args.limit)

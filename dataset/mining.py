@@ -11,6 +11,7 @@ import csv
 from collections import defaultdict
 from db import *
 import logging
+import argparse
 
 logger = logging.getLogger(__name__)
 
@@ -88,10 +89,10 @@ def _get(item):
         return commit
 
 
-def get_features(repo_path, filename, limit=None, download=False, save=True, single_process=False):
+def get_features(repo_path, limit=None, save=True, single_process=False):
     repo = Repo(repo_path)
 
-    rows = get_rows(filename)
+    rows = get_rows('data/jenkinsfullstats.csv')
 
     raw = read(rows, limit)
     if single_process:
@@ -126,5 +127,8 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
 
 
 if __name__ == '__main__':
-    root = '~/research/libre/libreoffice'
-    data = get_features(root, 'data/jenkinsfullstats.csv')
+    parser = argparse.ArgumentParser(description='Extract features of gerrit pushes')
+    parser.add_argument("--path", type=str, required=True, help="Path to libreoffice repository")
+    parser.add_argument("--limit", type=int, default=None, help="Limit of the number of pushes")
+    args = parser.parse_args()
+    data = get_features(args.path, args.limit)

@@ -52,18 +52,18 @@ def get_rows(filename):
     return lines
 
 
-def _init_process(server) -> None:
+def _init_process(server, root) -> None:
     global REPO, SERVER
     REPO = Repo(root)
     SERVER = server
 
 
-def _init_fetch() -> None:
+def _init_fetch(root) -> None:
     global REMOTE
     REMOTE = Repo(root).remotes[0]
 
 
-def _init_repo() -> None:
+def _init_repo(root) -> None:
     global REPO, REMOTE
     REPO = Repo(root)
     REMOTE = REPO.remotes[0]
@@ -100,7 +100,7 @@ def get_features(repo_path, limit=None, save=True, single_process=False):
         for item in tqdm(raw.items(), desc='initializing commits'):
             commits.append(_get(item))
     else:
-        with Pool(os.cpu_count(), initializer=_init_repo) as p:
+        with Pool(os.cpu_count(), initializer=_init_repo, initargs=(repo_path,)) as p:
             commits = list(tqdm(p.imap(_get, raw.items()), total=len(raw), desc='initializing commits'))
 
     commits.sort(key=lambda x: x.pushdate)
@@ -113,7 +113,7 @@ def get_features(repo_path, limit=None, save=True, single_process=False):
             commit.transform(repo.commit(commit.node), code_analysis_server)
     else:
         code_analysis_server = rust_code_analysis_server.RustCodeAnalysisServer()
-        with Pool(os.cpu_count(), initializer=_init_process, initargs=(code_analysis_server,)) as p:
+        with Pool(os.cpu_count(), initializer=_init_process, initargs=(code_analysis_server,repo_path)) as p:
             commits = list(tqdm(p.imap(_transform, commits), total=len(commits), desc='transforming commits'))
 
     code_analysis_server.terminate()

@@ -9,7 +9,7 @@ from experiences import calculate_experiences
 from multiprocessing import Pool
 import csv
 from collections import defaultdict
-from util import *
+from db import *
 import logging
 
 logger = logging.getLogger(__name__)
@@ -121,7 +121,7 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
     for i in range(len(commits)):
         commits[i] = commits[i].to_dict()
     if save:
-        write_file(commits, 'data/commits.gz')
+        write(commits, 'data/commits.json')
     return commits
 
 

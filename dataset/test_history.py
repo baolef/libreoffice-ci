@@ -1,22 +1,22 @@
 # Created by Baole Fang at 6/12/23
-import gc
+
 import itertools
 import logging
 
 from tqdm import tqdm
 from collections import Counter
-from util import *
+from db import *
 from typing import Any, Generator
 from experiences import ExpQueue
 
 logger = logging.getLogger(__name__)
 
 HISTORICAL_TIMESPAN = 4500
-ALL_TESTS = read_file('data/tests.gz')
+ALL_TESTS = set(read('data/tests.json'))
 
 
 def get_pushes(filename, limit):
-    commits = read_file(filename)[:limit]
+    commits = list(read(filename))[:limit]
     return commits
 
 
@@ -45,11 +45,9 @@ def generate_failing_together_probabilities(
             count_both_failures[(task1, task2)] += 1
             count_single_failures[(task1, task2)] -= 2
 
-    all_available_configs = set()
+    all_available_configs = ALL_TESTS
 
     for commit in tqdm(push_data, desc='calculating probability'):
-        all_tasks_set = ALL_TESTS
-        all_available_configs |= all_tasks_set
         failures = commit['failures']
         count_runs_and_failures(failures)
         if up_to is not None and commit['node'] == up_to:
@@ -164,7 +162,7 @@ def generate_failing_together_probabilities(
 
     failing_together["$ALL_CONFIGS$"] = all_available_configs
 
-    write_file(failing_together, 'data/failing_together.gz')
+    write(failing_together, 'data/failing_together.pickle.zstd')
 
 
 def _read_and_update_past_failures(
@@ -375,10 +373,8 @@ def generate_history(filename, limit=None):
 
         past_failures["push_num"] = push_num
 
-    gc.collect()
-    test_scheduling_db = list(generate_all_data())
-    write_file(test_scheduling_db, 'data/test_scheduling.gz')
+    write(generate_all_data(), 'data/test_scheduling.pickle.zstd')
 
 
 if __name__ == '__main__':
-    generate_history('data/commits.gz')
+    generate_history('data/commits.json')

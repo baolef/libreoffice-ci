@@ -1,7 +1,6 @@
 # Created by Baole Fang at 6/12/23
 
-import pickle
-from util import *
+from db import *
 
 
 def read_all_unit_tests(filename):
@@ -18,4 +17,4 @@ def read_all_unit_tests(filename):
 
 if __name__ == '__main__':
     tests = read_all_unit_tests('data/log.txt')
-    write_file(tests,'data/tests.gz')
+    write(tests,'data/tests.json')

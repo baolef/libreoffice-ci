@@ -44,7 +44,7 @@ def generate_failing_together_probabilities(
 
     all_available_configs = set()
 
-    for commit in tqdm(push_data):
+    for commit in tqdm(push_data, desc='calculating probability'):
         all_tasks_set = ALL_TESTS
         all_tasks = list(all_tasks_set)
         all_available_configs |= all_tasks_set
@@ -329,7 +329,7 @@ def generate_history(filename, limit=None):
         skipped_too_big_commits = 0
         skipped_no_runnables = 0
 
-        for commit in tqdm(commits):
+        for commit in tqdm(commits, 'processing commits'):
             push_num += 1
 
             # XXX: For now, skip commits which are too large.

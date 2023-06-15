@@ -27,7 +27,7 @@ def _fetch(line):
 
 def read(lines, limit):
     mapping = defaultdict(set)
-    for line in tqdm(lines):
+    for line in tqdm(lines, desc='reading csv'):
         if line[7] == 'no-githash-info':
             continue
         key = (line[6], line[7])
@@ -96,11 +96,11 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
     raw = read(rows, limit)
     if single_process:
         commits = []
-        for item in tqdm(raw.items()):
+        for item in tqdm(raw.items(), desc='initializing commits'):
             commits.append(_get(item))
     else:
         with Pool(os.cpu_count(), initializer=_init_repo) as p:
-            commits = list(tqdm(p.imap(_get, raw.items()), total=len(raw)))
+            commits = list(tqdm(p.imap(_get, raw.items()), total=len(raw), desc='initializing commits'))
 
     commits.sort(key=lambda x: x.pushdate)
 
@@ -108,12 +108,12 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
 
     if single_process:
         code_analysis_server = rust_code_analysis_server.RustCodeAnalysisServer(1)
-        for commit in tqdm(commits):
+        for commit in tqdm(commits, desc='transforming commits'):
             commit.transform(repo.commit(commit.node), code_analysis_server)
     else:
         code_analysis_server = rust_code_analysis_server.RustCodeAnalysisServer()
         with Pool(os.cpu_count(), initializer=_init_process, initargs=(code_analysis_server,)) as p:
-            commits = list(tqdm(p.imap(_transform, commits), total=len(commits)))
+            commits = list(tqdm(p.imap(_transform, commits), total=len(commits), desc='transforming commits'))
 
     code_analysis_server.terminate()
     commits = [commit for commit in commits if commit]
@@ -127,4 +127,4 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
 
 if __name__ == '__main__':
     root = '~/research/libre/libreoffice'
-    data = get_features(root, 'data/jenkinsfullstats.csv')
+    data = get_features(root, 'data/jenkinsfullstats.csv',1024)

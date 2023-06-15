@@ -30,26 +30,27 @@ def generate_failing_together_probabilities(
     count_single_failures = Counter()
     count_both_failures = Counter()
 
-    def count_runs_and_failures(tasks):
-        for task1, task2 in itertools.combinations(sorted(tasks), 2):
-            count_runs[(task1, task2)] += 1
+    for task1, task2 in itertools.combinations(sorted(ALL_TESTS), 2):
+        count_runs[(task1, task2)] = len(push_data)
 
-            if task1 in failures:
-                if task2 in failures:
-                    count_both_failures[(task1, task2)] += 1
-                else:
-                    count_single_failures[(task1, task2)] += 1
-            elif task2 in failures:
-                count_single_failures[(task1, task2)] += 1
+    def count_runs_and_failures(failures):
+        for failure in failures:
+            for task in ALL_TESTS:
+                if failure < task:
+                    count_single_failures[(failure, task)] += 1
+                elif failure > task:
+                    count_single_failures[(task, failure)] += 1
+        for task1, task2 in itertools.combinations(sorted(failures), 2):
+            count_both_failures[(task1, task2)] += 1
+            count_single_failures[(task1, task2)] -= 2
 
     all_available_configs = set()
 
     for commit in tqdm(push_data, desc='calculating probability'):
         all_tasks_set = ALL_TESTS
-        all_tasks = list(all_tasks_set)
         all_available_configs |= all_tasks_set
         failures = commit['failures']
-        count_runs_and_failures(all_tasks)
+        count_runs_and_failures(failures)
         if up_to is not None and commit['node'] == up_to:
             break
 

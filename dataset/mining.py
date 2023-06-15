@@ -127,4 +127,4 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
 
 if __name__ == '__main__':
     root = '~/research/libre/libreoffice'
-    data = get_features(root, 'data/jenkinsfullstats.csv',1024)
+    data = get_features(root, 'data/jenkinsfullstats.csv')

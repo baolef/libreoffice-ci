@@ -1,4 +1,5 @@
 # Created by Baole Fang at 6/12/23
+import gc
 import itertools
 import logging
 
@@ -374,6 +375,7 @@ def generate_history(filename, limit=None):
 
         past_failures["push_num"] = push_num
 
+    gc.collect()
     test_scheduling_db = list(generate_all_data())
     write_file(test_scheduling_db, 'data/test_scheduling.gz')
 

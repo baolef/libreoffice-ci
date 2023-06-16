@@ -1,21 +1,36 @@
 # Created by Baole Fang at 6/12/23
+import argparse
 import itertools
 import logging
 
 from tqdm import tqdm
 from collections import Counter
-from util import *
+from db import *
 from typing import Any, Generator
 from experiences import ExpQueue
 
 logger = logging.getLogger(__name__)
 
 HISTORICAL_TIMESPAN = 4500
-ALL_TESTS = read_file('data/tests.gz')
+
+
+def read_all_unit_tests(filename):
+    tests = set()
+    tags = ['CUT', 'UIT', 'JUT', 'PYT']
+    for i in range(len(tags)):
+        tags[i] = f'[build {tags[i]}]'
+    with open(filename) as f:
+        for line in f.readlines():
+            if line[:11] in tags:
+                tests.add(line.split()[-1])
+    return tests
+
+
+ALL_TESTS = read_all_unit_tests('data/log.txt')
 
 
 def get_pushes(filename, limit):
-    commits = read_file(filename)[:limit]
+    commits = list(read(filename))[:limit]
     return commits
 
 
@@ -44,11 +59,9 @@ def generate_failing_together_probabilities(
             count_both_failures[(task1, task2)] += 1
             count_single_failures[(task1, task2)] -= 2
 
-    all_available_configs = set()
+    all_available_configs = ALL_TESTS
 
     for commit in tqdm(push_data, desc='calculating probability'):
-        all_tasks_set = ALL_TESTS
-        all_available_configs |= all_tasks_set
         failures = commit['failures']
         count_runs_and_failures(failures)
         if up_to is not None and commit['node'] == up_to:
@@ -163,7 +176,7 @@ def generate_failing_together_probabilities(
 
     failing_together["$ALL_CONFIGS$"] = all_available_configs
 
-    write_file(failing_together, 'data/failing_together.gz')
+    write(failing_together, 'data/failing_together.pickle.zstd')
 
 
 def _read_and_update_past_failures(
@@ -374,9 +387,12 @@ def generate_history(filename, limit=None):
 
         past_failures["push_num"] = push_num
 
-    test_scheduling_db = list(generate_all_data())
-    write_file(test_scheduling_db, 'data/test_scheduling.gz')
+    write(generate_all_data(), 'data/test_scheduling.pickle.zstd')
 
 
 if __name__ == '__main__':
-    generate_history('data/commits.gz')
+    parser = argparse.ArgumentParser(description='Extract features of unit tests')
+    parser.add_argument("--path", type=str, default='data/commits.json', help="Path to commit features")
+    parser.add_argument("--limit", type=int, default=None, help="Limit of the number of pushes")
+    args = parser.parse_args()
+    generate_history(args.path, args.limit)

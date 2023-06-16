@@ -9,8 +9,9 @@ from experiences import calculate_experiences
 from multiprocessing import Pool
 import csv
 from collections import defaultdict
-from util import *
+from db import *
 import logging
+import argparse
 
 logger = logging.getLogger(__name__)
 
@@ -51,18 +52,18 @@ def get_rows(filename):
     return lines
 
 
-def _init_process(server) -> None:
+def _init_process(server, root) -> None:
     global REPO, SERVER
     REPO = Repo(root)
     SERVER = server
 
 
-def _init_fetch() -> None:
+def _init_fetch(root) -> None:
     global REMOTE
     REMOTE = Repo(root).remotes[0]
 
 
-def _init_repo() -> None:
+def _init_repo(root) -> None:
     global REPO, REMOTE
     REPO = Repo(root)
     REMOTE = REPO.remotes[0]
@@ -88,10 +89,10 @@ def _get(item):
         return commit
 
 
-def get_features(repo_path, filename, limit=None, download=False, save=True, single_process=False):
+def get_features(repo_path, limit=None, save=True, single_process=False):
     repo = Repo(repo_path)
 
-    rows = get_rows(filename)
+    rows = get_rows('data/jenkinsfullstats.csv')
 
     raw = read(rows, limit)
     if single_process:
@@ -99,7 +100,7 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
         for item in tqdm(raw.items(), desc='initializing commits'):
             commits.append(_get(item))
     else:
-        with Pool(os.cpu_count(), initializer=_init_repo) as p:
+        with Pool(os.cpu_count(), initializer=_init_repo, initargs=(repo_path,)) as p:
             commits = list(tqdm(p.imap(_get, raw.items()), total=len(raw), desc='initializing commits'))
 
     commits.sort(key=lambda x: x.pushdate)
@@ -112,7 +113,7 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
             commit.transform(repo.commit(commit.node), code_analysis_server)
     else:
         code_analysis_server = rust_code_analysis_server.RustCodeAnalysisServer()
-        with Pool(os.cpu_count(), initializer=_init_process, initargs=(code_analysis_server,)) as p:
+        with Pool(os.cpu_count(), initializer=_init_process, initargs=(code_analysis_server,repo_path)) as p:
             commits = list(tqdm(p.imap(_transform, commits), total=len(commits), desc='transforming commits'))
 
     code_analysis_server.terminate()
@@ -121,10 +122,13 @@ def get_features(repo_path, filename, limit=None, download=False, save=True, sin
     for i in range(len(commits)):
         commits[i] = commits[i].to_dict()
     if save:
-        write_file(commits, 'data/commits.gz')
+        write(commits, 'data/commits.json')
     return commits
 
 
 if __name__ == '__main__':
-    root = '~/research/libre/libreoffice'
-    data = get_features(root, 'data/jenkinsfullstats.csv',1024)
+    parser = argparse.ArgumentParser(description='Extract features of gerrit pushes')
+    parser.add_argument("--path", type=str, required=True, help="Path to libreoffice repository")
+    parser.add_argument("--limit", type=int, default=None, help="Limit of the number of pushes")
+    args = parser.parse_args()
+    data = get_features(args.path, args.limit)

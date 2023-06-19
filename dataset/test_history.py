@@ -29,7 +29,7 @@ def read_all_unit_tests(filename):
 ALL_TESTS = read_all_unit_tests('data/log.txt')
 
 
-def get_pushes(filename, limit):
+def get_pushes(filename='data/commits.json', limit=None):
     commits = list(read(filename))[:limit]
     return commits
 
@@ -77,9 +77,9 @@ def generate_failing_together_probabilities(
         support = failure_count / run_count
 
         # At manifest-level, don't filter based on support.
-        if granularity != "config_group" and support < 1 / 700:
-            skipped += 1
-            continue
+        # if granularity != "config_group" and support < 1 / 700:
+        #     skipped += 1
+        #     continue
 
         # At manifest-level, consider failures to be platform independent unless
         # proven otherwise.
@@ -176,7 +176,7 @@ def generate_failing_together_probabilities(
 
     failing_together["$ALL_CONFIGS$"] = all_available_configs
 
-    write(failing_together, 'data/failing_together.pickle.zstd')
+    write([failing_together], 'data/failing_together.pickle.zstd')
 
 
 def _read_and_update_past_failures(
@@ -386,6 +386,7 @@ def generate_history(filename, limit=None):
         logger.info("skipped %d (no interesting runnables)", skipped_no_runnables)
 
         past_failures["push_num"] = push_num
+        write([past_failures],'data/past_failures.pickle.zstd')
 
     write(generate_all_data(), 'data/test_scheduling.pickle.zstd')
 

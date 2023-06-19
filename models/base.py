@@ -25,17 +25,15 @@ from sklearn.model_selection import cross_validate, train_test_split
 from sklearn.preprocessing import LabelEncoder
 from tabulate import tabulate
 
-from bugbug import bugzilla, db, repository
-from bugbug.github import Github
-from bugbug.nlp import SpacyVectorizer
-from bugbug.utils import split_tuple_generator, to_array
+from nlp import SpacyVectorizer
+from utils import split_tuple_generator, to_array
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 def classification_report_imbalanced_values(
-    y_true, y_pred, labels, target_names=None, sample_weight=None, digits=2, alpha=0.1
+        y_true, y_pred, labels, target_names=None, sample_weight=None, digits=2, alpha=0.1
 ):
     """Build a classification report based on metrics used with imbalanced dataset.
 
@@ -154,25 +152,7 @@ class Model:
 
         self.entire_dataset_training = False
 
-        # DBs required for training.
-        self.training_dbs: list[str] = []
-        # DBs and DB support files required at runtime.
-        self.eval_dbs: dict[str, tuple[str, ...]] = {}
-
         self.le = LabelEncoder()
-
-    def download_eval_dbs(
-        self, extract: bool = True, ensure_exist: bool = True
-    ) -> None:
-        for eval_db, eval_files in self.eval_dbs.items():
-            for eval_file in eval_files:
-                if db.is_registered(eval_file):
-                    assert db.download(eval_file, extract=extract) or not ensure_exist
-                else:
-                    assert (
-                        db.download_support_file(eval_db, eval_file, extract=extract)
-                        or not ensure_exist
-                    )
 
     def get_feature_names(self):
         return []
@@ -297,11 +277,11 @@ class Model:
         for i in range(0, len(top_feature_names), COLUMNS):
             table = []
             for item in shap_val:
-                table.append(item[i : i + COLUMNS])
+                table.append(item[i: i + COLUMNS])
             print(
                 tabulate(
                     table,
-                    headers=(["classes"] + top_feature_names)[i : i + COLUMNS],
+                    headers=(["classes"] + top_feature_names)[i: i + COLUMNS],
                     tablefmt="grid",
                 ),
                 end="\n\n",
@@ -346,7 +326,7 @@ class Model:
         # Get items and labels, filtering out those for which we have no labels.
         X_gen, y = split_tuple_generator(lambda: self.items_gen(classes))
 
-        x=next(X_gen())
+        x = next(X_gen())
 
         # Extract features from the items.
         X = self.extraction_pipeline.fit_transform(X_gen)
@@ -590,16 +570,16 @@ class Model:
         return classes
 
     def classify(
-        self,
-        items,
-        probabilities=False,
-        importances=False,
-        importance_cutoff=0.15,
-        background_dataset=None,
+            self,
+            items,
+            probabilities=False,
+            importances=False,
+            importance_cutoff=0.15,
+            background_dataset=None,
     ):
         assert items is not None
         assert (
-            self.extraction_pipeline is not None and self.clf is not None
+                self.extraction_pipeline is not None and self.clf is not None
         ), "The module needs to be initialized first"
 
         if not isinstance(items, list):
@@ -674,109 +654,3 @@ class Model:
             a given model. Must return a dict with JSON-encodable types.
         """
         return {}
-
-
-class BugModel(Model):
-    def __init__(self, lemmatization=False, commit_data=False):
-        Model.__init__(self, lemmatization)
-        self.commit_data = commit_data
-        self.training_dbs = [bugzilla.BUGS_DB]
-        if commit_data:
-            self.training_dbs.append(repository.COMMITS_DB)
-
-    def items_gen(self, classes):
-        if not self.commit_data:
-            commit_map = None
-        else:
-            commit_map = defaultdict(list)
-
-            for commit in repository.get_commits():
-                bug_id = commit["bug_id"]
-                if not bug_id:
-                    continue
-
-                commit_map[bug_id].append(commit)
-
-            assert len(commit_map) > 0
-
-        for bug in bugzilla.get_bugs():
-            bug_id = bug["id"]
-            if bug_id not in classes:
-                continue
-
-            if self.commit_data:
-                if bug_id in commit_map:
-                    bug["commits"] = commit_map[bug_id]
-                else:
-                    bug["commits"] = []
-
-            yield bug, classes[bug_id]
-
-
-class CommitModel(Model):
-    def __init__(self, lemmatization=False, bug_data=False):
-        Model.__init__(self, lemmatization)
-        self.bug_data = bug_data
-        self.training_dbs = [repository.COMMITS_DB]
-        if bug_data:
-            self.training_dbs.append(bugzilla.BUGS_DB)
-
-    def items_gen(self, classes):
-        if not self.bug_data:
-            bug_map = None
-        else:
-            all_bug_ids = set(
-                commit["bug_id"]
-                for commit in repository.get_commits()
-                if commit["node"] in classes
-            )
-
-            bug_map = {
-                bug["id"]: bug
-                for bug in bugzilla.get_bugs()
-                if bug["id"] in all_bug_ids
-            }
-
-            assert len(bug_map) > 0
-
-        for commit in repository.get_commits(include_ignored=True):
-            if commit["node"] not in classes:
-                continue
-
-            if self.bug_data:
-                if commit["bug_id"] in bug_map:
-                    commit["bug"] = bug_map[commit["bug_id"]]
-                else:
-                    commit["bug"] = {}
-
-            yield commit, classes[commit["node"]]
-
-
-class BugCoupleModel(Model):
-    def __init__(self, lemmatization=False):
-        Model.__init__(self, lemmatization)
-        self.training_dbs = [bugzilla.BUGS_DB]
-
-    def items_gen(self, classes):
-        bugs = {}
-        for bug in bugzilla.get_bugs():
-            bugs[bug["id"]] = bug
-
-        for (bug_id1, bug_id2), label in classes.items():
-            yield (bugs[bug_id1], bugs[bug_id2]), label
-
-
-class IssueModel(Model):
-    def __init__(self, owner, repo, lemmatization=False):
-        Model.__init__(self, lemmatization)
-
-        self.github = Github(owner=owner, repo=repo)
-        self.training_dbs = [self.github.db_path]
-
-    def items_gen(self, classes):
-        for issue in self.github.get_issues():
-            issue_number = issue["number"]
-            if issue_number not in classes:
-                continue
-
-            yield issue, classes[issue_number]

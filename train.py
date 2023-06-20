@@ -7,7 +7,7 @@ import os
 import sys
 from logging import INFO, basicConfig, getLogger
 
-from models import get_model_class
+from models import get_model_class, models
 from utils import CustomJsonEncoder, zstd_compress
 
 MODELS_WITH_TYPE = ("component",)
@@ -97,7 +97,7 @@ def parse_args(args):
 
     subparsers = main_parser.add_subparsers(title="model", dest="model", required=True)
 
-    for model_name in MODELS:
+    for model_name in models:
         subparser = subparsers.add_parser(
             model_name, parents=[parser], help=f"Train {model_name} model"
         )

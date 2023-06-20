@@ -9,7 +9,7 @@ from typing import Sequence
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
-from commit import METRIC_NAMES
+from dataset.commit import METRIC_NAMES
 
 EXPERIENCE_TIMESPAN = 90
 EXPERIENCE_TIMESPAN_TEXT = f"{EXPERIENCE_TIMESPAN}_days"
@@ -907,8 +907,8 @@ def merge_metrics(objects):
     return metrics
 
 
-def merge_commits(commits: Sequence[repository.CommitDict]) -> repository.CommitDict:
-    return repository.CommitDict(
+def merge_commits(commits: Sequence[dict]) -> dict:
+    return (
         {
             "nodes": list(commit["node"] for commit in commits),
             "pushdate": commits[0]["pushdate"],
@@ -917,9 +917,9 @@ def merge_commits(commits: Sequence[repository.CommitDict]) -> repository.Commit
             "directories": list(
                 set(sum((commit["directories"] for commit in commits), []))
             ),
-            "components": list(
-                set(sum((commit["components"] for commit in commits), []))
-            ),
+            # "components": list(
+            #     set(sum((commit["components"] for commit in commits), []))
+            # ),
             "reviewers": list(
                 set(sum((commit["reviewers"] for commit in commits), []))
             ),

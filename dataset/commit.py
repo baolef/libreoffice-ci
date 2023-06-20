@@ -4,7 +4,7 @@ import os
 import logging
 from git import Commit
 from typing import *
-import rust_code_analysis_server
+from dataset import rust_code_analysis_server
 
 METRIC_NAMES = [
     "cyclomatic",

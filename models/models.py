@@ -1,6 +1,6 @@
 # Created by Baole Fang at 6/17/23
 
-from base import Model
+from .base import Model
 from typing import Type
 
 models = {}

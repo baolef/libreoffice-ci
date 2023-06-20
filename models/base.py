@@ -4,6 +4,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import logging
+import os
 import pickle
 from collections import defaultdict
 from typing import Any
@@ -18,6 +19,7 @@ from imblearn.metrics import (
     specificity_score,
 )
 from imblearn.pipeline import make_pipeline
+from joblib import parallel_backend
 from sklearn import metrics
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import precision_recall_fscore_support
@@ -25,7 +27,7 @@ from sklearn.model_selection import cross_validate, train_test_split
 from sklearn.preprocessing import LabelEncoder
 from tabulate import tabulate
 
-from nlp import SpacyVectorizer
+from .nlp import SpacyVectorizer
 from utils import split_tuple_generator, to_array
 
 logging.basicConfig(level=logging.INFO)
@@ -151,6 +153,7 @@ class Model:
         self.store_dataset = False
 
         self.entire_dataset_training = False
+        self.limit = None
 
         self.le = LabelEncoder()
 
@@ -320,24 +323,27 @@ class Model:
         pass
 
     def train(self, importance_cutoff=0.15, limit=None):
-        classes, self.class_names = self.get_labels()
+        self.limit=limit
+        _, self.class_names = self.get_labels()
         self.class_names = sort_class_names(self.class_names)
 
         # Get items and labels, filtering out those for which we have no labels.
-        X_gen, y = split_tuple_generator(lambda: self.items_gen(classes))
+        X_gen, y = split_tuple_generator(lambda: self.items_gen(limit))
 
-        x = next(X_gen())
+        # x = next(X_gen())
+        # print(x)
 
         # Extract features from the items.
-        X = self.extraction_pipeline.fit_transform(X_gen)
+        with parallel_backend('threading', n_jobs=os.cpu_count()):
+            X = self.extraction_pipeline.fit_transform(X_gen)
 
         # Calculate labels.
         y = np.array(y)
         self.le.fit(y)
 
-        if limit:
-            X = X[:limit]
-            y = y[:limit]
+        # if limit:
+        #     X = X[:limit]
+        #     y = y[:limit]
 
         print(f"X: {X.shape}, y: {y.shape}")
 

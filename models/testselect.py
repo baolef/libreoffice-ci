@@ -24,7 +24,9 @@ from tqdm import tqdm
 
 from dataset import commit_features, test_scheduling_features, test_history, db
 import utils
-from base import Model
+from . import register
+from .base import Model
+from random import random
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -252,9 +254,9 @@ class TestSelectModel(Model):
 
         if granularity == "label":
             feature_extractors += [
-                test_scheduling_features.platform(),
+                # test_scheduling_features.platform(),
                 # test_scheduling_features.chunk(),
-                test_scheduling_features.suite(),
+                # test_scheduling_features.suite(),
             ]
         elif granularity in ("group", "config_group"):
             feature_extractors += [
@@ -280,72 +282,121 @@ class TestSelectModel(Model):
             self, apply_filters: bool = False
     ) -> tuple[list[dict[str, Any]], int]:
         pushes = []
-        for revs, test_datas in db.read('data/test_scheduling.pickle.zstd'):
-            failures = []
-            passes = []
-
-            for test_data in test_datas:
-                name = test_data["name"]
-
-                if (
-                        test_data["is_likely_regression"]
-                        or test_data["is_possible_regression"]
-                ):
-                    failures.append(name)
-                else:
-                    passes.append(name)
-
-            if apply_filters:
-                if self.failures_skip and len(failures) > self.failures_skip:
-                    continue
-
+        all_tests=next(db.read('data/past_failures.pickle.zstd'))['all_runnables']
+        for commit in db.read('data/commits_sub.json'):
+            if len(pushes)>=self.limit:
+                break
             pushes.append(
                 {
-                    "revs": revs,
-                    "failures": failures,
-                    "passes": passes,
+                    "revs": [commit['node']],
+                    "failures": commit['failures'],
+                    "passes": list(all_tests-set(commit['failures'])),
                 }
             )
+        # for items in db.read('data/test_scheduling.pickle.zstd'):
+        #     if self.limit and len(pushes)>=self.limit:
+        #         break
+        #     revs=items['revs']
+        #     test_datas=items['data']
+        #     failures = []
+        #     passes = []
+        #
+        #     for test_data in test_datas:
+        #         name = test_data["name"]
+        #
+        #         if (
+        #                 test_data["is_failure"]
+        #         ):
+        #             failures.append(name)
+        #         else:
+        #             passes.append(name)
+        #
+        #     if apply_filters:
+        #         if self.failures_skip and len(failures) > self.failures_skip:
+        #             continue
+        #
+        #     pushes.append(
+        #         {
+        #             "revs": revs,
+        #             "failures": failures,
+        #             "passes": passes,
+        #         }
+        #     )
 
         return pushes, math.floor(0.9 * len(pushes))
 
     # To properly test the performance of our model, we need to split the data
     # according to time: we train on older pushes and evaluate on newer pushes.
     def train_test_split(self, X, y):
-        pushes, train_push_len = self.get_pushes(True)
-        train_len = sum(
-            len(push["failures"]) + len(push["passes"])
-            for push in pushes[:train_push_len]
-        )
-        logger.info(
-            "%d pushes in the training set (corresponding to %d push/jobs)",
-            train_push_len,
-            train_len,
-        )
+        # pushes, train_push_len = self.get_pushes()
+        # train_len = sum(
+        #     len(push["failures"]) + len(push["passes"])
+        #     for push in pushes[:train_push_len]
+        #     for push in pushes[:train_push_len]
+        # )
+        train_len=round(len(X)*0.8)
+        # logger.info(
+        #     "%d pushes in the training set (corresponding to %d push/jobs)",
+        #     train_push_len,
+        #     train_len,
+        # )
         return X[:train_len], X[train_len:], y[:train_len], y[train_len:]
 
-    def items_gen(self, classes):
-        commit_map = get_commit_map()
 
-        for revs, test_datas in db.read('data/test_scheduling.pickle.zstd'):
+    def items_gen(self, limit=None):
+        commit_map = get_commit_map()
+        i=0
+        for item in tqdm(db.read('data/test_scheduling.pickle.zstd'), total=limit, desc='generating data'):
+            i += 1
+            if limit and i > limit:
+                break
+            revs, test_datas=item['revs'],item['data']
             commits = tuple(
                 commit_map.pop(revision) for revision in revs if revision in commit_map
             )
+            failures=[]
+            for commit in commits:
+                failures+=commit['failures']
+            failures=set(failures)
             assert len(commits) > 0
 
             for test_data in test_datas:
-                name = test_data["name"]
-
-                if (revs[0], name) not in classes:
-                    continue
+                # name = test_data["name"]
+                label = 1 if test_data["name"] in failures else 0
+                # label = classes[(revs[0], name)]
+                # if (revs[0], name) not in classes:
+                #     continue
 
                 commit_data = commit_features.merge_commits(commits)
                 commit_data["test_job"] = test_data
-                yield commit_data, classes[(revs[0], name)]
+                yield commit_data, label
+
+    # def items_gen(self, classes, limit=None):
+    #     commit_map = get_commit_map()
+    #     i=0
+    #     for item in db.read('data/test_scheduling.pickle.zstd'):
+    #         revs, test_datas=item['revs'],item['data']
+    #         commits = tuple(
+    #             commit_map.pop(revision) for revision in revs if revision in commit_map
+    #         )
+    #         assert len(commits) > 0
+    #
+    #         for test_data in test_datas:
+    #             if limit and i >= limit:
+    #                 break
+    #             i += 1
+    #             name = test_data["name"]
+    #
+    #             if (revs[0], name) not in classes:
+    #                 continue
+    #
+    #             commit_data = commit_features.merge_commits(commits)
+    #             commit_data["test_job"] = test_data
+    #             yield commit_data, classes[(revs[0], name)]
 
     def get_labels(self):
         classes = {}
-        pushes, _ = self.get_pushes(True)
+        pushes, _ = self.get_pushes()
 
         for push in pushes:
             for name in push["failures"]:
@@ -434,30 +485,6 @@ class TestSelectModel(Model):
         )
 
         test_pushes = {push["revs"][0]: push for push in test_pushes_list}
-
-        if self.granularity == "group":
-            for (
-                    revisions,
-                    fix_revision,
-                    push_runnables,
-                    possible_regressions,
-                    likely_regressions,
-            ) in tqdm(push_data_iter(), total=push_data_count):
-                if revisions[0] not in test_pushes:
-                    continue
-
-                test_pushes[revisions[0]]["config_group_failures"] = (
-                        possible_regressions + likely_regressions
-                )
-
-            missing_config_group_failures = sum(
-                1
-                for push in test_pushes.values()
-                if "config_group_failures" not in push
-            )
-            logger.info(
-                "%d pushes without config_group failures", missing_config_group_failures
-            )
 
         logger.info(
             "Testing on %d (%d with failures) out of %d. %d schedulable tasks.",
@@ -674,6 +701,7 @@ class TestSelectModel(Model):
         return self.extraction_pipeline.named_steps["union"].get_feature_names_out()
 
 
+@register('testselect')
 class TestLabelSelectModel(TestSelectModel):
     def __init__(self, lemmatization=False):
         TestSelectModel.__init__(self, lemmatization, "label", failures_skip=60)

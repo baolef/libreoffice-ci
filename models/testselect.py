@@ -48,6 +48,7 @@ def get_commit_map(
 
 
 def _get_cost(config: str) -> int:
+    return 1
     costs = [
         (("build", "opt"), 1),
         (("build", "debug"), 2),
@@ -282,15 +283,15 @@ class TestSelectModel(Model):
             self, apply_filters: bool = False
     ) -> tuple[list[dict[str, Any]], int]:
         pushes = []
-        all_tests=next(db.read('data/past_failures.pickle.zstd'))['all_runnables']
+        all_tests = next(db.read('data/past_failures.pickle.zstd'))['all_runnables']
         for commit in db.read('data/commits_sub.json'):
-            if len(pushes)>=self.limit:
+            if len(pushes) >= self.limit:
                 break
             pushes.append(
                 {
                     "revs": [commit['node']],
                     "failures": commit['failures'],
-                    "passes": list(all_tests-set(commit['failures'])),
+                    "passes": list(all_tests - set(commit['failures'])),
                 }
             )
         # for items in db.read('data/test_scheduling.pickle.zstd'):
@@ -334,7 +335,7 @@ class TestSelectModel(Model):
         #     for push in pushes[:train_push_len]
         #     for push in pushes[:train_push_len]
         # )
-        train_len=round(len(X)*0.8)
+        train_len = round(len(X) * 0.8)
         # logger.info(
         #     "%d pushes in the training set (corresponding to %d push/jobs)",
         #     train_push_len,
@@ -342,22 +343,21 @@ class TestSelectModel(Model):
         # )
         return X[:train_len], X[train_len:], y[:train_len], y[train_len:]
 
-
     def items_gen(self, limit=None):
         commit_map = get_commit_map()
-        i=0
+        i = 0
         for item in tqdm(db.read('data/test_scheduling.pickle.zstd'), total=limit, desc='generating data'):
             i += 1
             if limit and i > limit:
                 break
-            revs, test_datas=item['revs'],item['data']
+            revs, test_datas = item['revs'], item['data']
             commits = tuple(
                 commit_map.pop(revision) for revision in revs if revision in commit_map
             )
-            failures=[]
+            failures = []
             for commit in commits:
-                failures+=commit['failures']
-            failures=set(failures)
+                failures += commit['failures']
+            failures = set(failures)
             assert len(commits) > 0
 
             for test_data in test_datas:
@@ -701,7 +701,7 @@ class TestSelectModel(Model):
         return self.extraction_pipeline.named_steps["union"].get_feature_names_out()
 
 
-@register('testselect')
+@register('testlabelselect')
 class TestLabelSelectModel(TestSelectModel):
     def __init__(self, lemmatization=False):
         TestSelectModel.__init__(self, lemmatization, "label", failures_skip=60)

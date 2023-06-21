@@ -7,6 +7,9 @@ import os
 import sys
 from logging import INFO, basicConfig, getLogger
 
+import numpy as np
+
+import utils
 from models import get_model_class, models
 from utils import CustomJsonEncoder, zstd_compress
 
@@ -23,7 +26,7 @@ class Trainer(object):
 
         if args.classifier != "default":
             assert (
-                args.model in MODELS_WITH_TYPE
+                    args.model in MODELS_WITH_TYPE
             ), f"{args.classifier} is not a valid classifier type for {args.model}"
 
             model_name = f"{args.model}_{args.classifier}"
@@ -37,18 +40,20 @@ class Trainer(object):
         }
         model_obj = model_class(**parameters)
 
-
         logger.info("Training *%s* model", model_name)
         metrics = model_obj.train(limit=args.limit)
 
         # Save the metrics as a file that can be uploaded as an artifact.
         metric_file_path = "metrics.json"
+        print(metrics)
         with open(metric_file_path, "w") as metric_file:
-            json.dump(metrics, metric_file, cls=CustomJsonEncoder)
+            json.dump(utils.cast_type(metrics, [np.int64, np.float64], [int, float]), metric_file,
+                      cls=CustomJsonEncoder, indent=2)
 
         logger.info("Training done")
 
         model_file_name = f"{model_name}model"
+        print(model_file_name)
         assert os.path.exists(model_file_name)
         zstd_compress(model_file_name)
 

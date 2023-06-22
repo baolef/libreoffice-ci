@@ -5,7 +5,7 @@ from typing import Collection, Any, Union
 
 from tqdm import tqdm
 from collections import deque
-from commit import Commit
+from dataset.commit import Commit
 
 logger = logging.getLogger(__name__)
 

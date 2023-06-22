@@ -502,7 +502,7 @@ class TestSelectModel(Model):
         last_push_num = past_failures_data["push_num"]
 
         # Select tests for all the pushes in the test set.
-        for i, push in enumerate(tqdm(test_pushes.values())):
+        for i, push in enumerate(tqdm(test_pushes.values(), desc='selecting tests')):
             commits = tuple(
                 commit_map.pop(revision)
                 for revision in push["revs"]
@@ -519,7 +519,7 @@ class TestSelectModel(Model):
             # The number 100 comes from the fact that in the past failure data
             # generation we store past failures in batches of 100 pushes.
             push["all_possibly_selected"] = self.select_tests(
-                commits, 0.5, push_num - 100
+                commits, 0.5, push_num
             )
 
         def do_eval(

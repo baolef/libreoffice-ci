@@ -54,3 +54,15 @@ To convert one database format (eg. `data/commits.json`) into another (eg. `data
 ```shell
 python dataset/convert.py data/commits.json data/commits.pickle.zstd
 ```
+
+## Model
+
+To train a model (eg. `testlabelselect`) after extracting necessary data:
+```shell
+python train.py testlabelselect
+```
+
+Training a model with full dataset may be time and memory consuming, `--limit` argument can be used to train a subset:
+```shell
+python train.py testlabelselect --limit 16384
+```

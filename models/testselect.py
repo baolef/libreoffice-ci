@@ -8,6 +8,7 @@ import concurrent.futures
 import logging
 import math
 import multiprocessing as mp
+import os
 import pickle
 import statistics
 from functools import reduce
@@ -276,7 +277,7 @@ class TestSelectModel(Model):
             ]
         )
 
-        self.clf = xgboost.XGBClassifier(n_jobs=utils.get_physical_cpu_count())
+        self.clf = xgboost.XGBClassifier(n_jobs=os.cpu_count())
         self.clf.set_params(predictor="cpu_predictor")
 
     def get_pushes(

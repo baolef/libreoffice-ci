@@ -172,7 +172,7 @@ def generate_failing_together_probabilities(
             failing_together[couple[0]][couple[1]] = (support, confidence)
 
     for percentage, count in count_redundancies.most_common():
-        logger.info("%d with %f%% confidence", count, percentage)
+        logger.info(f"{count} with {percentage} confidence")
 
     failing_together["$ALL_CONFIGS$"] = all_available_configs
 

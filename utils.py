@@ -7,6 +7,7 @@ from collections import deque
 from dataset import db
 import numpy as np
 import scipy
+from sklearn.base import BaseEstimator, TransformerMixin
 
 
 def cast_type(container, from_types, to_types):
@@ -75,3 +76,14 @@ def get_physical_cpu_count() -> int:
 
 def read_commits(path='data/commits.json'):
     return db.read(path)
+
+
+class Converter(BaseEstimator, TransformerMixin):
+    def __init__(self, dtype=np.float32):
+        self.dtype = dtype
+
+    def fit(self, x, y=None):
+        return self
+
+    def transform(self, data):
+        return data.astype(self.dtype)

@@ -274,6 +274,7 @@ class TestSelectModel(Model):
                     commit_features.CommitExtractor(feature_extractors, []),
                 ),
                 ("union", ColumnTransformer([("data", DictVectorizer(), "data")])),
+                ("converter", utils.Converter())
             ]
         )
 
@@ -363,7 +364,7 @@ class TestSelectModel(Model):
 
             for test_data in test_datas:
                 # name = test_data["name"]
-                label = 1 if test_data["name"] in failures else 0
+                label = test_data["name"] in failures
                 # label = classes[(revs[0], name)]
                 # if (revs[0], name) not in classes:
                 #     continue
@@ -419,7 +420,7 @@ class TestSelectModel(Model):
             sum(1 for label in classes.values() if label == 0),
         )
 
-        return classes, [0, 1]
+        return classes, [False, True]
 
     def select_tests(
             self,

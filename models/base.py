@@ -19,7 +19,6 @@ from imblearn.metrics import (
     specificity_score,
 )
 from imblearn.pipeline import make_pipeline
-from joblib import parallel_backend
 from sklearn import metrics
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import precision_recall_fscore_support
@@ -323,8 +322,8 @@ class Model:
         pass
 
     def train(self, importance_cutoff=0.15, limit=None):
-        self.limit=limit
-        _, self.class_names = self.get_labels()
+        self.limit = limit
+        self.class_names = self.get_labels()
         self.class_names = sort_class_names(self.class_names)
 
         # Get items and labels, filtering out those for which we have no labels.
@@ -334,8 +333,7 @@ class Model:
         # print(x)
 
         # Extract features from the items.
-        with parallel_backend('threading', n_jobs=os.cpu_count()):
-            X = self.extraction_pipeline.fit_transform(X_gen)
+        X = self.extraction_pipeline.fit_transform(X_gen)
 
         # Calculate labels.
         y = np.array(y)

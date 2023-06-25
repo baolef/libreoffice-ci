@@ -273,8 +273,9 @@ class TestSelectModel(Model):
                     "commit_extractor",
                     commit_features.CommitExtractor(feature_extractors, []),
                 ),
-                ("union", ColumnTransformer([("data", DictVectorizer(), "data")])),
-                ("converter", utils.Converter())
+                ("union", ColumnTransformer([("data", DictVectorizer(sparse=True, dtype=np.float32), "data")],
+                                            sparse_threshold=float('inf'), n_jobs=os.cpu_count())),
+                # ("converter", utils.Converter())
             ]
         )
 
@@ -420,7 +421,7 @@ class TestSelectModel(Model):
             sum(1 for label in classes.values() if label == 0),
         )
 
-        return classes, [False, True]
+        return [False, True]
 
     def select_tests(
             self,

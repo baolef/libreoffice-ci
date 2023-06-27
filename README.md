@@ -6,6 +6,11 @@ The work is based on Mozilla's [bugbug](https://github.com/mozilla/bugbug) and [
 
 ## Environment
 
+Install `build-essential`:
+```shell
+sudo apt install build-essential
+```
+
 Clone [libreoffice](https://www.libreoffice.org/):
 ```shell
 git clone https://gerrit.libreoffice.org/core libreoffice

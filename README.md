@@ -6,9 +6,10 @@ The work is based on Mozilla's [bugbug](https://github.com/mozilla/bugbug) and [
 
 ## Environment
 
-Install `build-essential`:
+Install `build-essential` and `zstd`:
 ```shell
 sudo apt install build-essential
+sudo apt install zstd
 ```
 
 Clone [libreoffice](https://www.libreoffice.org/):

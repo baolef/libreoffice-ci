@@ -138,12 +138,12 @@ def sort_class_names(class_names):
 
 
 class Model:
-    def __init__(self, lemmatization=False):
+    def __init__(self, lemmatization=False, path='data/commits.json'):
         if lemmatization:
             self.text_vectorizer = SpacyVectorizer
         else:
             self.text_vectorizer = TfidfVectorizer
-
+        self.commits_path = path
         self.cross_validation_enabled = True
         self.sampler = None
 
@@ -334,6 +334,7 @@ class Model:
 
         # Extract features from the items.
         X = self.extraction_pipeline.fit_transform(X_gen)
+        print("finish reading X")
 
         # Calculate labels.
         y = np.array(y)

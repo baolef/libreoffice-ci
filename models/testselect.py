@@ -34,11 +34,11 @@ logger = logging.getLogger(__name__)
 
 
 def get_commit_map(
-        revs=None,
+        revs=None, path='data/commits_sub.json'
 ):
     commit_map = {}
 
-    for commit in utils.read_commits():
+    for commit in utils.read_commits(path):
         if revs is not None and commit["node"] not in revs:
             continue
 
@@ -237,8 +237,8 @@ def reduce_configs(
 
 
 class TestSelectModel(Model):
-    def __init__(self, lemmatization=False, granularity="label", failures_skip=None):
-        Model.__init__(self, lemmatization)
+    def __init__(self, lemmatization=False, path='data/commits.json', granularity="label", failures_skip=None):
+        Model.__init__(self, lemmatization, path)
 
         self.granularity = granularity
         self.failures_skip = failures_skip
@@ -273,8 +273,9 @@ class TestSelectModel(Model):
                     "commit_extractor",
                     commit_features.CommitExtractor(feature_extractors, []),
                 ),
-                ("union", ColumnTransformer([("data", DictVectorizer(sparse=True, dtype=np.float32), "data")],
-                                            sparse_threshold=float('inf'), n_jobs=os.cpu_count())),
+                ("union", ColumnTransformer([("data", DictVectorizer(dtype=np.float32), "data")])),
+                # ("union", ColumnTransformer([("data", DictVectorizer(sparse=True, dtype=np.float32), "data")],
+                #                             sparse_threshold=float('inf'), n_jobs=os.cpu_count())),
                 # ("converter", utils.Converter())
             ]
         )
@@ -347,7 +348,7 @@ class TestSelectModel(Model):
         return X[:train_len], X[train_len:], y[:train_len], y[train_len:]
 
     def items_gen(self, limit=None):
-        commit_map = get_commit_map()
+        commit_map = get_commit_map(path=self.commits_path)
         i = 0
         for item in tqdm(db.read('data/test_scheduling.pickle.zstd'), total=limit, desc='generating data'):
             i += 1
@@ -464,7 +465,7 @@ class TestSelectModel(Model):
         # only failure data from the training pushes (otherwise, we'd leak training information into the test
         # set).
         logger.info("Generate failing together DB (restricted to training pushes)")
-        commits = test_history.get_pushes()
+        commits = test_history.get_pushes(self.commits_path)
         test_history.generate_failing_together_probabilities(
             "label" if self.granularity == "label" else "config_group",
             commits,
@@ -499,7 +500,7 @@ class TestSelectModel(Model):
 
         del pushes
 
-        commit_map = get_commit_map(all_revs)
+        commit_map = get_commit_map(all_revs, path=self.commits_path)
 
         past_failures_data = next(db.read('data/past_failures.pickle.zstd'))
         last_push_num = past_failures_data["push_num"]
@@ -706,8 +707,8 @@ class TestSelectModel(Model):
 
 @register('testlabelselect')
 class TestLabelSelectModel(TestSelectModel):
-    def __init__(self, lemmatization=False):
-        TestSelectModel.__init__(self, lemmatization, "label", failures_skip=60)
+    def __init__(self, lemmatization=False, path='data/commits.json'):
+        TestSelectModel.__init__(self, lemmatization, path, "label", failures_skip=60)
 
 
 class TestGroupSelectModel(TestSelectModel):

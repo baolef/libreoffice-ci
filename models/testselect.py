@@ -27,14 +27,13 @@ from dataset import commit_features, test_scheduling_features, test_history, db
 import utils
 from . import register
 from .base import Model
-from random import random
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 def get_commit_map(
-        revs=None, path='data/commits_sub.json'
+        revs=None, path='data/commits.json'
 ):
     commit_map = {}
 
@@ -288,8 +287,8 @@ class TestSelectModel(Model):
     ) -> tuple[list[dict[str, Any]], int]:
         pushes = []
         all_tests = next(db.read('data/past_failures.pickle.zstd'))['all_runnables']
-        for commit in db.read('data/commits_sub.json'):
-            if len(pushes) >= self.limit:
+        for commit in db.read(self.commits_path):
+            if self.limit and len(pushes) >= self.limit:
                 break
             pushes.append(
                 {
@@ -350,7 +349,7 @@ class TestSelectModel(Model):
     def items_gen(self, limit=None):
         commit_map = get_commit_map(path=self.commits_path)
         i = 0
-        for item in tqdm(db.read('data/test_scheduling.pickle.zstd'), total=limit, desc='generating data'):
+        for item in tqdm(db.read('data/test_scheduling.pickle.zstd'), total=min(limit,len(commit_map)) if limit else len(commit_map), desc='generating data'):
             i += 1
             if limit and i > limit:
                 break

@@ -69,7 +69,7 @@ class ExpQueue:
         # assert (
         #         day >= self.start_day
         # ), f"Can't get a day ({day}) from earlier than start day ({self.start_day})"
-        if day>=self.start_day:
+        if day<self.start_day:
             day=self.start_day
 
         if day < 0:

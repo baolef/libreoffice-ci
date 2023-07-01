@@ -8,6 +8,7 @@ import concurrent.futures
 import logging
 import math
 import multiprocessing as mp
+import os
 import pickle
 import statistics
 from functools import reduce
@@ -26,25 +27,10 @@ from dataset import commit_features, test_scheduling_features, test_history, db
 import utils
 from . import register
 from .base import Model
-from random import random
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-def get_commit_map(
-        revs=None,
-):
-    commit_map = {}
-
-    for commit in utils.read_commits():
-        if revs is not None and commit["node"] not in revs:
-            continue
-
-        commit_map[commit["node"]] = commit
-
-    assert len(commit_map) > 0
-    return commit_map
 
 
 def _get_cost(config: str) -> int:
@@ -236,8 +222,8 @@ def reduce_configs(
 
 
 class TestSelectModel(Model):
-    def __init__(self, lemmatization=False, granularity="label", failures_skip=None):
-        Model.__init__(self, lemmatization)
+    def __init__(self, lemmatization=False, path='data/commits.json', granularity="label", failures_skip=None):
+        Model.__init__(self, lemmatization, path)
 
         self.granularity = granularity
         self.failures_skip = failures_skip
@@ -272,11 +258,14 @@ class TestSelectModel(Model):
                     "commit_extractor",
                     commit_features.CommitExtractor(feature_extractors, []),
                 ),
-                ("union", ColumnTransformer([("data", DictVectorizer(), "data")])),
+                ("union", ColumnTransformer([("data", DictVectorizer(dtype=np.float32), "data")])),
+                # ("union", ColumnTransformer([("data", DictVectorizer(sparse=True, dtype=np.float32), "data")],
+                #                             sparse_threshold=float('inf'), n_jobs=os.cpu_count())),
+                # ("converter", utils.Converter())
             ]
         )
 
-        self.clf = xgboost.XGBClassifier(n_jobs=utils.get_physical_cpu_count())
+        self.clf = xgboost.XGBClassifier(n_jobs=os.cpu_count())
         self.clf.set_params(predictor="cpu_predictor")
 
     def get_pushes(
@@ -284,8 +273,8 @@ class TestSelectModel(Model):
     ) -> tuple[list[dict[str, Any]], int]:
         pushes = []
         all_tests = next(db.read('data/past_failures.pickle.zstd'))['all_runnables']
-        for commit in db.read('data/commits_sub.json'):
-            if len(pushes) >= self.limit:
+        for commit in db.read(self.commits_path):
+            if self.limit and len(pushes) >= self.limit:
                 break
             pushes.append(
                 {
@@ -344,9 +333,9 @@ class TestSelectModel(Model):
         return X[:train_len], X[train_len:], y[:train_len], y[train_len:]
 
     def items_gen(self, limit=None):
-        commit_map = get_commit_map()
+        commit_map = utils.get_commit_map(path=self.commits_path)
         i = 0
-        for item in tqdm(db.read('data/test_scheduling.pickle.zstd'), total=limit, desc='generating data'):
+        for item in tqdm(db.read('data/test_scheduling.pickle.zstd'), total=min(limit,len(commit_map)) if limit else len(commit_map), desc='generating data'):
             i += 1
             if limit and i > limit:
                 break
@@ -362,7 +351,7 @@ class TestSelectModel(Model):
 
             for test_data in test_datas:
                 # name = test_data["name"]
-                label = 1 if test_data["name"] in failures else 0
+                label = int(test_data["name"] in failures)
                 # label = classes[(revs[0], name)]
                 # if (revs[0], name) not in classes:
                 #     continue
@@ -418,7 +407,7 @@ class TestSelectModel(Model):
             sum(1 for label in classes.values() if label == 0),
         )
 
-        return classes, [0, 1]
+        return [0, 1]
 
     def select_tests(
             self,
@@ -461,7 +450,7 @@ class TestSelectModel(Model):
         # only failure data from the training pushes (otherwise, we'd leak training information into the test
         # set).
         logger.info("Generate failing together DB (restricted to training pushes)")
-        commits = test_history.get_pushes()
+        commits = test_history.get_pushes(self.commits_path)
         test_history.generate_failing_together_probabilities(
             "label" if self.granularity == "label" else "config_group",
             commits,
@@ -496,7 +485,7 @@ class TestSelectModel(Model):
 
         del pushes
 
-        commit_map = get_commit_map(all_revs)
+        commit_map = utils.get_commit_map(all_revs, path=self.commits_path)
 
         past_failures_data = next(db.read('data/past_failures.pickle.zstd'))
         last_push_num = past_failures_data["push_num"]
@@ -519,7 +508,7 @@ class TestSelectModel(Model):
             # The number 100 comes from the fact that in the past failure data
             # generation we store past failures in batches of 100 pushes.
             push["all_possibly_selected"] = self.select_tests(
-                commits, 0.5, push_num
+                commits, 0.25, push_num
             )
 
         def do_eval(
@@ -703,8 +692,8 @@ class TestSelectModel(Model):
 
 @register('testlabelselect')
 class TestLabelSelectModel(TestSelectModel):
-    def __init__(self, lemmatization=False):
-        TestSelectModel.__init__(self, lemmatization, "label", failures_skip=60)
+    def __init__(self, lemmatization=False, path='data/commits.json'):
+        TestSelectModel.__init__(self, lemmatization, path, "label", failures_skip=60)
 
 
 class TestGroupSelectModel(TestSelectModel):

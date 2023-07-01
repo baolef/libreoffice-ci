@@ -2,7 +2,15 @@
 
 GSoC Project: LibreOffice CI Test Selection with Machine Learning
 
+The work is based on Mozilla's [bugbug](https://github.com/mozilla/bugbug) and [rust-code-analysis](https://mozilla.github.io/rust-code-analysis/).
+
 ## Environment
+
+Install `build-essential` and `zstd`:
+```shell
+sudo apt install build-essential
+sudo apt install zstd
+```
 
 Clone [libreoffice](https://www.libreoffice.org/):
 ```shell

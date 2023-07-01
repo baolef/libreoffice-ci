@@ -72,6 +72,12 @@ def parse_args(args):
 
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
+        "--path",
+        type=str,
+        default='data/commits.json',
+        help="Only train on a subset of the data, used mainly for integrations tests",
+    )
+    parser.add_argument(
         "--limit",
         type=int,
         help="Only train on a subset of the data, used mainly for integrations tests",
@@ -117,6 +123,9 @@ def parse_args(args):
                 continue
 
             if parameter.name == "lemmatization":
+                continue
+
+            if parameter.name == "path":
                 continue
 
             parameter_type = parameter.annotation

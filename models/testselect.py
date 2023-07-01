@@ -32,20 +32,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def get_commit_map(
-        revs=None, path='data/commits.json'
-):
-    commit_map = {}
-
-    for commit in utils.read_commits(path):
-        if revs is not None and commit["node"] not in revs:
-            continue
-
-        commit_map[commit["node"]] = commit
-
-    assert len(commit_map) > 0
-    return commit_map
-
 
 def _get_cost(config: str) -> int:
     return 1
@@ -347,7 +333,7 @@ class TestSelectModel(Model):
         return X[:train_len], X[train_len:], y[:train_len], y[train_len:]
 
     def items_gen(self, limit=None):
-        commit_map = get_commit_map(path=self.commits_path)
+        commit_map = utils.get_commit_map(path=self.commits_path)
         i = 0
         for item in tqdm(db.read('data/test_scheduling.pickle.zstd'), total=min(limit,len(commit_map)) if limit else len(commit_map), desc='generating data'):
             i += 1
@@ -499,7 +485,7 @@ class TestSelectModel(Model):
 
         del pushes
 
-        commit_map = get_commit_map(all_revs, path=self.commits_path)
+        commit_map = utils.get_commit_map(all_revs, path=self.commits_path)
 
         past_failures_data = next(db.read('data/past_failures.pickle.zstd'))
         last_push_num = past_failures_data["push_num"]

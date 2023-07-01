@@ -4,6 +4,7 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import logging
+import math
 import os
 import pickle
 from collections import defaultdict
@@ -26,6 +27,7 @@ from sklearn.model_selection import cross_validate, train_test_split
 from sklearn.preprocessing import LabelEncoder
 from tabulate import tabulate
 
+from dataset import db
 from .nlp import SpacyVectorizer
 from utils import split_tuple_generator, to_array
 
@@ -147,7 +149,7 @@ class Model:
         self.cross_validation_enabled = True
         self.sampler = None
 
-        self.calculate_importance = True
+        self.calculate_importance = False
 
         self.store_dataset = True
 

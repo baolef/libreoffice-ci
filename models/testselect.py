@@ -365,7 +365,7 @@ class TestSelectModel(Model):
 
             for test_data in test_datas:
                 # name = test_data["name"]
-                label = test_data["name"] in failures
+                label = int(test_data["name"] in failures)
                 # label = classes[(revs[0], name)]
                 # if (revs[0], name) not in classes:
                 #     continue
@@ -421,7 +421,7 @@ class TestSelectModel(Model):
             sum(1 for label in classes.values() if label == 0),
         )
 
-        return [False, True]
+        return [0, 1]
 
     def select_tests(
             self,
@@ -522,7 +522,7 @@ class TestSelectModel(Model):
             # The number 100 comes from the fact that in the past failure data
             # generation we store past failures in batches of 100 pushes.
             push["all_possibly_selected"] = self.select_tests(
-                commits, 0.5, push_num
+                commits, 0.25, push_num
             )
 
         def do_eval(

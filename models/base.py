@@ -149,7 +149,7 @@ class Model:
 
         self.calculate_importance = True
 
-        self.store_dataset = False
+        self.store_dataset = True
 
         self.entire_dataset_training = False
         self.limit = None

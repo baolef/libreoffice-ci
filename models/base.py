@@ -149,7 +149,7 @@ class Model:
         self.cross_validation_enabled = True
         self.sampler = None
 
-        self.calculate_importance = False
+        self.calculate_importance = True
 
         self.store_dataset = True
 

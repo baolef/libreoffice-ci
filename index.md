@@ -8,3 +8,5 @@ title: Blogs
 - [x] [Familiar with Mozilla's work](_posts/2023-05-31-week1.md#familiar-with-mozillas-work)
 - [x] [Commit feature extraction](_posts/2023-06-07-week2.md#commit-feature-extraction)
 - [x] [Unit test feature extraction](_posts/2023-06-07-week2.md#unit-test-feature-extraction)
+- [x] [Model training](_posts/2023-06-22-week4.md#model-training)
+- [x] [Model inference](_posts/2023-06-29-week5.md#model-inference)

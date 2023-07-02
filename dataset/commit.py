@@ -424,13 +424,15 @@ def calculate_lines(commit, file):
 
 
 def get_component_dict(path='data/bz_data.csv'):
-    result={}
-    data=pd.read_csv(path)
-    for bug_id,component in zip(data['id'],data['component']):
-        result[bug_id]=component
+    result = {None: None}
+    data = pd.read_csv(path)
+    for bug_id, component in zip(data['id'], data['component']):
+        result[int(bug_id)] = component
     return result
 
-COMPONENT=get_component_dict()
+
+COMPONENT = get_component_dict()
+
 
 class Commit:
     def __init__(
@@ -467,6 +469,7 @@ class Commit:
         self.types: Set[str] = set()
         self.functions: dict[str, list[dict]] = {}
         self.failures = failures
+        self.components = [COMPONENT.get(self.bug_id, None)]
 
     def __eq__(self, other):
         assert isinstance(other, Commit)

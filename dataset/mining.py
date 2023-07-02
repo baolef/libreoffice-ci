@@ -3,6 +3,7 @@
 import os
 from datetime import datetime
 
+import pytz
 from git import Repo
 from commit import Commit
 import rust_code_analysis_server
@@ -32,8 +33,6 @@ def read(lines, limit):
     mapping = defaultdict(set)
     for line in tqdm(lines, desc='reading csv'):
         if line[7] == 'no-githash-info':
-            continue
-        if int(line[0]) < START_DATE:
             continue
         key = (line[6], line[7])
         if line[10] == 'SUCCESS':
@@ -110,6 +109,8 @@ def get_features(repo_path, limit=None, csv_path='data/jenkinsfullstats.csv', ou
 
     commits.sort(key=lambda x: x.pushdate)
 
+    commits=[c for c in commits if c.pushdate>=START_DATE]
+
     first_pushdate = commits[0].pushdate
 
     if single_process:
@@ -133,11 +134,11 @@ def get_features(repo_path, limit=None, csv_path='data/jenkinsfullstats.csv', ou
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Extract features of gerrit pushes')
-    parser.add_argument("--path", type=str, required=True, help="Path to libreoffice repository")
+    parser.add_argument("--path", type=str, default="~/libreoffice", help="Path to libreoffice repository")
     parser.add_argument("--limit", type=int, default=None, help="Limit of the number of pushes")
     parser.add_argument("--input", type=str, default="data/jenkinsfullstats.csv", help="Input path of jenkins stats")
     parser.add_argument("--output", type=str, default="data/commits.json", help="Output path of commit features")
     parser.add_argument("--start", type=str, default="2020-01-01", help="Start date (%Y-%m-%d) of commits")
     args = parser.parse_args()
-    START_DATE = datetime.strptime(args.start, "%Y-%m-%d").timestamp()
+    START_DATE = pytz.UTC.localize(datetime.strptime(args.start, "%Y-%m-%d"))
     data = get_features(args.path, args.limit, args.input, args.output)

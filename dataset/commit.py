@@ -2,6 +2,8 @@
 import copy
 import os
 import logging
+
+import pandas as pd
 from git import Commit
 from typing import *
 from dataset import rust_code_analysis_server
@@ -420,6 +422,15 @@ def calculate_lines(commit, file):
             delete += 1
     return delete_lines, add_lines, False
 
+
+def get_component_dict(path='data/bz_data.csv'):
+    result={}
+    data=pd.read_csv(path)
+    for bug_id,component in zip(data['id'],data['component']):
+        result[bug_id]=component
+    return result
+
+COMPONENT=get_component_dict()
 
 class Commit:
     def __init__(

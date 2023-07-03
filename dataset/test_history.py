@@ -283,19 +283,19 @@ def generate_data(
             is_regression,
         )
 
-        # (
-        #     total_components_failures,
-        #     past_700_pushes_components_failures,
-        #     past_1400_pushes_components_failures,
-        #     past_2800_pushes_components_failures,
-        # ) = _read_and_update_past_failures(
-        #     past_failures,
-        #     "component",
-        #     runnable,
-        #     commit["components"],
-        #     push_num,
-        #     is_regression,
-        # )
+        (
+            total_components_failures,
+            past_700_pushes_components_failures,
+            past_1400_pushes_components_failures,
+            past_2800_pushes_components_failures,
+        ) = _read_and_update_past_failures(
+            past_failures,
+            "component",
+            runnable,
+            commit["components"],
+            push_num,
+            is_regression,
+        )
 
         obj = {
             "name": runnable,
@@ -315,11 +315,11 @@ def generate_data(
             "failures_past_700_pushes_in_directories": past_700_pushes_directories_failures,
             "failures_past_1400_pushes_in_directories": past_1400_pushes_directories_failures,
             "failures_past_2800_pushes_in_directories": past_2800_pushes_directories_failures,
-            "is_failure": is_regression
-            # "failures_in_components": total_components_failures,
-            # "failures_past_700_pushes_in_components": past_700_pushes_components_failures,
-            # "failures_past_1400_pushes_in_components": past_1400_pushes_components_failures,
-            # "failures_past_2800_pushes_in_components": past_2800_pushes_components_failures,
+            "is_failure": is_regression,
+            "failures_in_components": total_components_failures,
+            "failures_past_700_pushes_in_components": past_700_pushes_components_failures,
+            "failures_past_1400_pushes_in_components": past_1400_pushes_components_failures,
+            "failures_past_2800_pushes_in_components": past_2800_pushes_components_failures,
         }
 
         yield obj

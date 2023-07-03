@@ -469,7 +469,10 @@ class Commit:
         self.types: Set[str] = set()
         self.functions: dict[str, list[dict]] = {}
         self.failures = failures
-        self.components = [COMPONENT.get(self.bug_id, None)]
+        self.components = []
+        components = COMPONENT.get(self.bug_id, None)
+        if components:
+            self.components.append(components)
 
     def __eq__(self, other):
         assert isinstance(other, Commit)

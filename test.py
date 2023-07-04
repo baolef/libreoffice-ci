@@ -92,6 +92,9 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    if not args.model.endswith('model'):
+        args.model=args.model+'model'
+
     classifier = CommitClassifier(
         args.model,
         args.repo_dir,

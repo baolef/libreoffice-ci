@@ -51,7 +51,7 @@ def read(lines, limit):
 def get_rows(filename):
     with open(filename) as f:
         file = csv.reader(f, delimiter='\t')
-        lines = list(file)[1:-1]
+        lines = list(file)[6:-1]
     return lines
 
 

@@ -72,7 +72,7 @@ def main() -> None:
 
     parser.add_argument("model", help="Which model to use for evaluation")
     parser.add_argument(
-        "--repo_dir",
+        "--path",
         type=str,
         default="~/libreoffice",
         help="Path to a Gecko repository. If no repository exists, it will be cloned to this location.",

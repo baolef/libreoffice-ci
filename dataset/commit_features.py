@@ -917,9 +917,9 @@ def merge_commits(commits: Sequence[dict]) -> dict:
             "directories": list(
                 set(sum((commit["directories"] for commit in commits), []))
             ),
-            # "components": list(
-            #     set(sum((commit["components"] for commit in commits), []))
-            # ),
+            "components": list(
+                set(sum((commit["components"] for commit in commits), []))
+            ),
             "reviewers": list(
                 set(sum((commit["reviewers"] for commit in commits), []))
             ),

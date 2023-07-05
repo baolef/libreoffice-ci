@@ -31,12 +31,18 @@ class CommitClassifier:
         self.code_analysis_server = rust_code_analysis_server.RustCodeAnalysisServer()
 
     def get_commit(self, revision):
-        try:
-            c = self.repo.commit(revision)
-        except:
-            self.repo.remotes[0].fetch(revision)
-            c = self.repo.commit(revision)
-        finally:
+        if revision:
+            try:
+                c = self.repo.commit(revision)
+            except:
+                self.repo.remotes[0].fetch(revision)
+                c = self.repo.commit(revision)
+            finally:
+                commit = Commit(c)
+                commit.transform(c, self.code_analysis_server)
+                return commit.to_dict()
+        else:
+            c = self.repo.head.commit
             commit = Commit(c)
             commit.transform(c, self.code_analysis_server)
             return commit.to_dict()
@@ -72,7 +78,7 @@ def main() -> None:
         help="Path to a Gecko repository. If no repository exists, it will be cloned to this location.",
     )
 
-    parser.add_argument("--revision", help="revision to analyze.", type=str, required=True)
+    parser.add_argument("--revision", help="revision to analyze. If not specify, use the last commit.", type=str)
     parser.add_argument(
         "--use-single-process",
         action="store_true",
@@ -91,6 +97,9 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+
+    if not args.model.endswith('model'):
+        args.model = args.model + 'model'
 
     classifier = CommitClassifier(
         args.model,

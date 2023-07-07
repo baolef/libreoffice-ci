@@ -3,4 +3,4 @@ conda activate libreoffice-ci
 
 cd ~/libreoffice-ci || exit
 export PYTHONPATH=${PYTHONPATH}:${pwd}
-python test.py testlabelselect --path $1
+python test.py testlabelselect --confidence_threshold -1 --path $1

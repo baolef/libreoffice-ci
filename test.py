@@ -60,10 +60,13 @@ class CommitClassifier:
                    > self.confidence_threshold
                 else "0"
             )
+        print(f"overall failure risk: {testfailure_probs[0][1]}")
         with open("selected_tasks", "w") as f:
             f.writelines(
                 f"{selected_task}: {prob}\n" for selected_task, prob in selected_tasks.items()
             )
+        for selected_task, prob in selected_tasks.items():
+            print(f"{selected_task}: {prob}")
 
 
 def main() -> None:

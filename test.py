@@ -47,33 +47,36 @@ class CommitClassifier:
             commit.transform(c, self.code_analysis_server)
             return commit.to_dict()
 
-    def classify(self, revision: str):
+    def classify(self, revision: str, save: bool):
         commit = self.get_commit(revision)
         testfailure_probs = self.testfailure_model.classify(commit, probabilities=True)
         logger.info("Test failure risk: %f", testfailure_probs[0][1])
         selected_tasks = self.model.select_tests([commit], self.confidence_threshold)
+        selected_tasks = dict(sorted(selected_tasks.items()))
 
-        with open("failure_risk", "w") as f:
-            f.write(
-                "1"
-                if testfailure_probs[0][1]
-                   > self.confidence_threshold
-                else "0"
-            )
-        print(f"overall failure risk: {testfailure_probs[0][1]}")
-        with open("selected_tasks", "w") as f:
-            f.writelines(
-                f"{selected_task}: {prob}\n" for selected_task, prob in selected_tasks.items()
-            )
         for selected_task, prob in selected_tasks.items():
-            print(f"{selected_task}: {prob}")
+            print(f"[Unit Test] {selected_task}: {prob}")
+
+        if save:
+            with open("failure_risk", "w") as f:
+                f.write(
+                    "1"
+                    if testfailure_probs[0][1]
+                       > self.confidence_threshold
+                    else "0"
+                )
+            with open("selected_tasks", "w") as f:
+                f.writelines(
+                    f"{selected_task}: {prob}\n" for selected_task, prob in selected_tasks.items()
+                )
+
 
 
 def main() -> None:
     description = "Classify a commit"
     parser = argparse.ArgumentParser(description=description)
 
-    parser.add_argument("model", help="Which model to use for evaluation")
+    parser.add_argument("model", help="Which model to use for evaluation.")
     parser.add_argument(
         "--path",
         type=str,
@@ -96,8 +99,9 @@ def main() -> None:
         "--confidence_threshold",
         type=float,
         default=0.5,
-        help="Confidence threshold determining whether tests should be run"
+        help="Confidence threshold determining whether tests should be run."
     )
+    parser.add_argument("--save", action="store_true", help="Whether to write results to file.")
 
     args = parser.parse_args()
 
@@ -111,7 +115,7 @@ def main() -> None:
         args.skip_feature_importance,
         args.confidence_threshold
     )
-    classifier.classify(args.revision)
+    classifier.classify(args.revision, args.save)
 
 
 if __name__ == '__main__':

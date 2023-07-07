@@ -44,7 +44,7 @@ class Trainer(object):
         metrics = model_obj.train(limit=args.limit)
 
         # Save the metrics as a file that can be uploaded as an artifact.
-        metric_file_path = "metrics.json"
+        metric_file_path = f"{model_name}_metrics.json"
         print(metrics)
         with open(metric_file_path, "w") as metric_file:
             json.dump(utils.cast_type(metrics, [np.int64, np.float64], [int, float]), metric_file,

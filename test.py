@@ -106,7 +106,7 @@ def main() -> None:
 
     classifier = CommitClassifier(
         args.model,
-        args.repo_dir,
+        args.path,
         args.use_single_process,
         args.skip_feature_importance,
         args.confidence_threshold

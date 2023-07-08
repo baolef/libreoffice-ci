@@ -1,0 +1,119 @@
+{
+  "test_accuracy": {
+    "mean": 0.6529483862181669,
+    "std": 0.01658841106912293
+  },
+  "test_precision": {
+    "mean": 0.2179840634087346,
+    "std": 0.009804711163645449
+  },
+  "test_recall": {
+    "mean": 0.5486229819563152,
+    "std": 0.03500449584822267
+  },
+  "feature_report": {
+    "classes": {
+      "0": {
+        "# of code lines added": 0.072074756,
+        "Maximum test files size": -0.062595814,
+        "# of lines added in tests": -0.051789187,
+        "Maximum code files size": 0.046126846,
+        "Minimum code files size": 0.044506844,
+        "Average code files size": 0.042659543,
+        "Average test files size": -0.040078703,
+        "# of code lines deleted": -0.033910282,
+        "# of modified code files": -0.02548055,
+        "vcl/source in directories": -0.021383239,
+        "# of modified non-code files": -0.014667464,
+        "# of directories modified": 0.014505175,
+        "sw in directories": -0.013919741,
+        "Minimum test files size": -0.012271217,
+        "writerfilter/source in directories": 0.012019147,
+        "Minimum non-code files size": -0.011506181,
+        ".ui in file types": 0.011011234,
+        "# of lines deleted in tests": 0.010823641
+      },
+      "1": {
+        "# of code lines added": -0.072074756,
+        "Maximum test files size": 0.062595814,
+        "# of lines added in tests": 0.051789187,
+        "Maximum code files size": -0.046126846,
+        "Minimum code files size": -0.044506844,
+        "Average code files size": -0.042659543,
+        "Average test files size": 0.040078703,
+        "# of code lines deleted": 0.033910282,
+        "# of modified code files": 0.02548055,
+        "vcl/source in directories": 0.021383239,
+        "# of modified non-code files": 0.014667464,
+        "# of directories modified": -0.014505175,
+        "sw in directories": 0.013919741,
+        "Minimum test files size": 0.012271217,
+        "writerfilter/source in directories": -0.012019147,
+        "Minimum non-code files size": 0.011506181,
+        ".ui in file types": -0.011011234,
+        "# of lines deleted in tests": -0.010823641
+      }
+    },
+    "average": {
+      "# of code lines added": 0.072074756026268,
+      "Maximum test files size": 0.06259581446647644,
+      "# of lines added in tests": 0.051789186894893646,
+      "Maximum code files size": 0.046126846224069595,
+      "Minimum code files size": 0.04450684413313866,
+      "Average code files size": 0.042659543454647064,
+      "Average test files size": 0.04007870331406593,
+      "# of code lines deleted": 0.03391028195619583,
+      "# of modified code files": 0.025480549782514572,
+      "vcl/source in directories": 0.021383238956332207,
+      "# of modified non-code files": 0.014667464420199394,
+      "# of directories modified": 0.014505174942314625,
+      "sw in directories": 0.013919740915298462,
+      "Minimum test files size": 0.012271217070519924,
+      "writerfilter/source in directories": 0.012019147165119648,
+      "Minimum non-code files size": 0.011506181210279465,
+      ".ui in file types": 0.011011233553290367,
+      "# of lines deleted in tests": 0.01082364097237587
+    }
+  },
+  "report": {
+    "targets": {
+      "1": {
+        "precision": 0.22174070061394005,
+        "recall": 0.5381244522348817,
+        "specificity": 0.6929324593901396,
+        "f1": 0.3140664961636829,
+        "geo_mean": 0.610642203049452,
+        "iba": 0.3671113587969141,
+        "support": 1141
+      },
+      "0": {
+        "precision": 0.902226345083488,
+        "recall": 0.6929324593901396,
+        "specificity": 0.5381244522348817,
+        "f1": 0.7838491295938104,
+        "geo_mean": 0.610642203049452,
+        "iba": 0.37865644149326233,
+        "support": 7018
+      }
+    },
+    "average": {
+      "precision": 0.8070634427253859,
+      "recall": 0.6712832454957716,
+      "specificity": 0.5597736661292497,
+      "f1": 0.7181521097698399,
+      "geo_mean": 0.610642203049452,
+      "iba": 0.3770419128308609,
+      "support": 8159
+    }
+  },
+  "confusion_matrix": [
+    [
+      614,
+      527
+    ],
+    [
+      2155,
+      4863
+    ]
+  ]
+}

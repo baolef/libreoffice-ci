@@ -82,3 +82,5 @@ To inference a model (eg. `testlabelselect`) after training necessary models (eg
 ```shell
 python test.py testlabelselect --revision a772976f047882918d5386a3ef9226c4aa2aa118
 ```
+
+If a commit hash is not specified, it will perform inference on the last commit.

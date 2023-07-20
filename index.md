@@ -12,3 +12,4 @@ title: Blogs
 - [x] [Model inference](_posts/2023-06-29-week5.md#model-inference)
 - [x] [Model sharing](_posts/2023-06-29-week5.md#model-sharing)
 - [ ] Jenkins integration
+- [x] [Result archive](_posts/2023-07-20-week8.md#result-archive)

@@ -1,13 +1,14 @@
 # Created by Baole Fang at 6/30/23
 import argparse
+import os.path
 from logging import getLogger
 
 from dataset import rust_code_analysis_server
-from models.base import Model
 from models.testfailure import TestFailureModel
 from models.testselect import TestLabelSelectModel
 from git import Repo
 from dataset.commit import Commit
+import csv
 
 logger = getLogger(__name__)
 
@@ -47,7 +48,7 @@ class CommitClassifier:
             commit.transform(c, self.code_analysis_server)
             return commit.to_dict()
 
-    def classify(self, revision: str, save: bool):
+    def classify(self, revision: str, save: bool, csv_path: str):
         commit = self.get_commit(revision)
         testfailure_probs = self.testfailure_model.classify(commit, probabilities=True)
         logger.info("Test failure risk: %f", testfailure_probs[0][1])
@@ -56,6 +57,11 @@ class CommitClassifier:
 
         for selected_task, prob in selected_tasks.items():
             print(f"[Unit Test] {selected_task}: {prob}")
+
+        with open(os.path.join(csv_path, 'probability.csv'), 'w') as f:
+            writer = csv.writer(f)
+            writer.writerow(['overall', testfailure_probs[0][1]])
+            writer.writerows(selected_tasks.items())
 
         if save:
             with open("failure_risk", "w") as f:
@@ -71,7 +77,6 @@ class CommitClassifier:
                 )
 
 
-
 def main() -> None:
     description = "Classify a commit"
     parser = argparse.ArgumentParser(description=description)
@@ -83,7 +88,12 @@ def main() -> None:
         default="~/libreoffice",
         help="Path to a Gecko repository. If no repository exists, it will be cloned to this location.",
     )
-
+    parser.add_argument(
+        "--csv",
+        type=str,
+        required=True,
+        help="Path to csv.",
+    )
     parser.add_argument("--revision", help="revision to analyze. If not specify, use the last commit.", type=str)
     parser.add_argument(
         "--use-single-process",
@@ -115,7 +125,7 @@ def main() -> None:
         args.skip_feature_importance,
         args.confidence_threshold
     )
-    classifier.classify(args.revision, args.save)
+    classifier.classify(args.revision, args.save, args.csv)
 
 
 if __name__ == '__main__':

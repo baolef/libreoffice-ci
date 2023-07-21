@@ -22,6 +22,7 @@ class CommitClassifier:
             use_single_process: bool,
             skip_feature_importance: bool,
             confidence_threshold: float,
+            failure_threshold: float,
     ):
         self.model_name = model_name
         self.use_single_process = use_single_process
@@ -30,6 +31,7 @@ class CommitClassifier:
         self.model: TestLabelSelectModel = TestLabelSelectModel.load(model_name)
         self.repo = Repo(repo_dir)
         self.confidence_threshold = confidence_threshold
+        self.failure_threshold = failure_threshold
         self.code_analysis_server = rust_code_analysis_server.RustCodeAnalysisServer()
 
     def get_commit(self, revision):
@@ -79,7 +81,7 @@ class CommitClassifier:
                     f"{selected_task}: {prob}\n" for selected_task, prob in selected_tasks.items()
                 )
 
-        if testfailure_probs[0][1] > self.confidence_threshold:
+        if testfailure_probs[0][1] > self.failure_threshold:
             exit(1)
         else:
             exit(0)
@@ -125,6 +127,12 @@ def main() -> None:
         default=0.5,
         help="Confidence threshold determining whether tests should be run."
     )
+    parser.add_argument(
+        "--failure_threshold",
+        type=float,
+        default=0.5,
+        help="Confidence threshold determining whether the overall test should be run."
+    )
     parser.add_argument("--save", action="store_true", help="Whether to write results to file.")
 
     args = parser.parse_args()
@@ -137,7 +145,8 @@ def main() -> None:
         args.path,
         args.use_single_process,
         args.skip_feature_importance,
-        args.confidence_threshold
+        args.confidence_threshold,
+        args.failure_threshold,
     )
     classifier.classify(args.revision, args.save, args.csv, args.id)
 

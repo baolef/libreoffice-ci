@@ -79,6 +79,11 @@ class CommitClassifier:
                     f"{selected_task}: {prob}\n" for selected_task, prob in selected_tasks.items()
                 )
 
+        if testfailure_probs[0][1] > self.confidence_threshold:
+            exit(1)
+        else:
+            exit(0)
+
 
 def main() -> None:
     description = "Classify a commit"
@@ -139,4 +144,3 @@ def main() -> None:
 
 if __name__ == '__main__':
     main()
-    exit(1)

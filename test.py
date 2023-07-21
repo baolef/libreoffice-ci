@@ -59,7 +59,7 @@ class CommitClassifier:
         for selected_task, prob in selected_tasks.items():
             print(f"[Unit Test] {selected_task}: {prob}")
 
-        os.environ['PROBABILITY'] = testfailure_probs[0][1]
+        os.environ['PROBABILITY'] = str(testfailure_probs[0][1])
 
         with open(os.path.join(csv_path, 'probability.csv'), 'w') as f:
             writer = csv.writer(f)

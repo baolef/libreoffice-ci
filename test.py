@@ -9,6 +9,7 @@ from models.testselect import TestLabelSelectModel
 from git import Repo
 from dataset.commit import Commit
 import csv
+from datetime import datetime
 
 logger = getLogger(__name__)
 
@@ -48,7 +49,7 @@ class CommitClassifier:
             commit.transform(c, self.code_analysis_server)
             return commit.to_dict()
 
-    def classify(self, revision: str, save: bool, csv_path: str):
+    def classify(self, revision: str, save: bool, csv_path: str, id: str):
         commit = self.get_commit(revision)
         testfailure_probs = self.testfailure_model.classify(commit, probabilities=True)
         logger.info("Test failure risk: %f", testfailure_probs[0][1])
@@ -60,6 +61,8 @@ class CommitClassifier:
 
         with open(os.path.join(csv_path, 'probability.csv'), 'w') as f:
             writer = csv.writer(f)
+            writer.writerow(['id', id])
+            writer.writerow(['datetime', str(datetime.now())])
             writer.writerow(['overall', testfailure_probs[0][1]])
             writer.writerows(selected_tasks.items())
 
@@ -91,8 +94,14 @@ def main() -> None:
     parser.add_argument(
         "--csv",
         type=str,
-        required=True,
+        default='./',
         help="Path to csv.",
+    )
+    parser.add_argument(
+        "--id",
+        type=str,
+        default='',
+        help="Gerrit id.",
     )
     parser.add_argument("--revision", help="revision to analyze. If not specify, use the last commit.", type=str)
     parser.add_argument(
@@ -125,7 +134,7 @@ def main() -> None:
         args.skip_feature_importance,
         args.confidence_threshold
     )
-    classifier.classify(args.revision, args.save, args.csv)
+    classifier.classify(args.revision, args.save, args.csv, args.id)
 
 
 if __name__ == '__main__':

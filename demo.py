@@ -85,7 +85,6 @@ app.layout = html.Div([
     [Input('threshold', 'value'),
      Input('overall', 'value'),
      Input('count', 'value')],
-    prevent_initial_call=True
 )
 def plot(threshold, overall, count):
     data = (x > threshold).sum(axis=1)

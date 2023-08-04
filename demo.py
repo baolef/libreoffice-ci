@@ -53,13 +53,23 @@ app.layout = html.Div([
     dcc.Graph(id='graph'),
     dmc.NumberInput(
         id='count',
-        value=0
+        value=10
     ),
     dmc.Slider(
         id='threshold',
         min=0,
         max=1,
         step=0.01,
+        value=0.9,
+        precision=2,
+        updatemode='drag'
+    ),
+    dmc.Slider(
+        id='overall',
+        min=0,
+        max=1,
+        step=0.01,
+        value=0.4,
         precision=2,
         updatemode='drag'
     ),
@@ -73,10 +83,11 @@ app.layout = html.Div([
      Output('report', 'children'),
      Output('matrix', 'children')],
     [Input('threshold', 'value'),
+     Input('overall', 'value'),
      Input('count', 'value')],
     prevent_initial_call=True
 )
-def plot(threshold, count):
+def plot(threshold, overall, count):
     data = (x > threshold).sum(axis=1)
     a = data[y == 0]
     b = data[y == 1]
@@ -86,7 +97,7 @@ def plot(threshold, count):
     fig.add_trace(go.Histogram(x=b, name='fail'))
     fig.update_layout(barmode='overlay')
 
-    y_pred = (data >= count) | (yy > 0.3)
+    y_pred = (data >= count) | (yy > overall)
     confusion_matrix = metrics.confusion_matrix(
         y, y_pred, labels=[0, 1]
     )

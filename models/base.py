@@ -566,6 +566,10 @@ class Model:
             with open(f"{self.__class__.__name__.lower()}_data_y", "wb") as f:
                 pickle.dump(y, f, protocol=pickle.HIGHEST_PROTOCOL)
 
+            y_pred=self.clf.predict_proba(X)
+            with open(f"{self.__class__.__name__.lower()}_data_y_pred", "wb") as f:
+                pickle.dump(y_pred, f, protocol=pickle.HIGHEST_PROTOCOL)
+
         return tracking_metrics
 
     @staticmethod

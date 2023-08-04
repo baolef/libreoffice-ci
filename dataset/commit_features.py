@@ -10,6 +10,7 @@ import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 
 from dataset.commit import METRIC_NAMES
+from dataset import db
 
 EXPERIENCE_TIMESPAN = 90
 EXPERIENCE_TIMESPAN_TEXT = f"{EXPERIENCE_TIMESPAN}_days"
@@ -882,6 +883,15 @@ class types(object):
 
     def __call__(self, commit, **kwargs):
         return commit["types"]
+
+
+class probability(object):
+    name = "probability"
+    all_tests=list(db.read('data/tests.json'))
+
+    def __call__(self, commit, **kwargs):
+        return {self.all_tests[i]:commit["probability"][i] for i in range(len(self.all_tests))}
+        # return commit["probability"]
 
 
 def merge_metrics(objects):

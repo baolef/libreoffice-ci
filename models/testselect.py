@@ -276,11 +276,12 @@ class TestSelectModel(Model):
         for commit in db.read(self.commits_path):
             if self.limit and len(pushes) >= self.limit:
                 break
+            passes=[t for t in all_tests if t not in commit['failures']]
             pushes.append(
                 {
                     "revs": [commit['node']],
                     "failures": commit['failures'],
-                    "passes": list(all_tests - set(commit['failures'])),
+                    "passes": passes,
                 }
             )
         # for items in db.read('data/test_scheduling.pickle.zstd'):
@@ -340,6 +341,7 @@ class TestSelectModel(Model):
             if limit and i > limit:
                 break
             revs, test_datas = item['revs'], item['data']
+            # print([test_data["name"] for test_data in test_datas])
             commits = tuple(
                 commit_map.pop(revision) for revision in revs if revision in commit_map
             )

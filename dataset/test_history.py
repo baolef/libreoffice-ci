@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 HISTORICAL_TIMESPAN = 4500
 
-ALL_TESTS = set(read('data/tests.json'))
+ALL_TESTS = list(read('data/tests.json'))
 
 
 def get_pushes(filename='data/commits.json', limit=None):

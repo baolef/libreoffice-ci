@@ -8,7 +8,7 @@ cd ~/libreoffice-ci || exit
 export PYTHONPATH=${PYTHONPATH}:${pwd}
 export PATH=~/.cargo/bin:${PATH}
 python dataset/mining.py --path $1
-python dataset/mapping.py
-python dataset/test_history.py
-python train.py testlabelselect
-python train.py testfailure
+python dataset/mapping.py --group
+python dataset/test_history.py --path data/commits_group.json
+python train.py testlabelselect --path data/commits_group.json
+python train.py testfailure --path data/commits_group.json

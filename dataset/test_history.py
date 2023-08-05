@@ -13,24 +13,23 @@ logger = logging.getLogger(__name__)
 
 HISTORICAL_TIMESPAN = 4500
 
-
-def read_all_unit_tests(filename):
-    tests = set()
-    tags = ['CUT', 'UIT', 'JUT', 'PYT']
-    for i in range(len(tags)):
-        tags[i] = f'[build {tags[i]}]'
-    with open(filename) as f:
-        for line in f.readlines():
-            if line[:11] in tags:
-                tests.add(line.split()[-1])
-    return tests
-
-
-ALL_TESTS = read_all_unit_tests('data/log.txt')
+ALL_TESTS = set(read('data/tests.json'))
 
 
 def get_pushes(filename='data/commits.json', limit=None):
     commits = list(read(filename))[:limit]
+    # if group:
+    #     for i in range(len(commits)):
+    #         for j in range(len(commits[i]['failures'])):
+    #             try:
+    #                 parent = test2parent[commits[i]['failures'][j]]
+    #             except KeyError:
+    #                 parent = commits[i]['failures'][j].split('_')[0]
+    #                 ALL_TESTS.add(parent)
+    #             finally:
+    #                 commits[i]['failures'][j] = parent
+    # write(ALL_TESTS, 'data/tests.json')
+    # write([test2parent], 'data/test2parent.json')
     return commits
 
 
@@ -387,7 +386,7 @@ def generate_history(filename, limit=None):
         logger.info("skipped %d (no interesting runnables)", skipped_no_runnables)
 
         past_failures["push_num"] = push_num
-        write([past_failures],'data/past_failures.pickle.zstd')
+        write([past_failures], 'data/past_failures.pickle.zstd')
 
     write(generate_all_data(), 'data/test_scheduling.pickle.zstd')
 

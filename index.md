@@ -14,3 +14,4 @@ title: Blogs
 - [ ] Jenkins integration
 - [x] [Result archive](_posts/2023-07-20-week8.md#result-archive)
 - [x] [Model improvement](_posts/2023-07-27-week9.md#model-improvement)
+- [x] [Smart inference](_posts/2023-08-03-week10.md#smart-inference)

@@ -53,7 +53,12 @@ To extract features for past gerrit pushes, extract `data/jenkinsfullstats.csv` 
 python dataset/mining.py --path ../libreoffice
 ```
 
-To extract features for unit tests, extract pushes features `data/commits.json` first, and then run:
+To extract all unit tests, extract pushes features `data/commits.json` first, and then run:
+```shell
+python dataset/mapping.py
+```
+
+To extract features for unit tests, extract pushes features `data/commits.json` and `data/tests.json` first, and then run:
 ```shell
 python dataset/test_history.py --path data/commits.json
 ```
@@ -65,16 +70,18 @@ python dataset/convert.py data/commits.json data/commits.pickle.zstd
 
 ## Training
 
-To train a model (eg. `testlabelselect`, `testfailure`) after extracting necessary data:
+To train a model (eg. `testlabelselect`, `testoverall`) after extracting necessary data:
 ```shell
 python train.py testlabelselect
-python train.py testfailure
+python train.py testoverall
 ```
 
 Training a model with full dataset may be time and memory consuming, `--limit` argument can be used to train a subset:
 ```shell
 python train.py testlabelselect --limit 16384
 ```
+
+Detailed training scripts are available for ungrouped data `scripts/train.sh` and grouped data `scripts/train_group.sh`.
 
 ## Inference
 
@@ -84,3 +91,5 @@ python test.py testlabelselect --revision a772976f047882918d5386a3ef9226c4aa2aa1
 ```
 
 If a commit hash is not specified, it will perform inference on the last commit.
+
+Detailed inference script is available in `scripts/test.sh`.

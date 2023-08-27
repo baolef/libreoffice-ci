@@ -42,7 +42,7 @@ def print_labeled_confusion_matrix(confusion_matrix, labels, is_multilabel=False
 
 with open("testlabelselectmodel_data_y_pred", "rb") as f:
     x = pickle.load(f)[:, 1].reshape(-1, 80)
-with open("testfailuremodel_data_y", "rb") as f:
+with open("testoverallmodel_data_y", "rb") as f:
     y = pickle.load(f)
 with open("testoverallmodel_data_y_pred", "rb") as f:
     yy = pickle.load(f)[:, 1]

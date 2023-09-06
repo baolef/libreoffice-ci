@@ -1,5 +1,5 @@
 ---
-title: LibreOffice CI Test Selection with Machine Learning
+title: Final Report
 ---
 
 ## About project

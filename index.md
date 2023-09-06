@@ -1,7 +1,3 @@
----
-title: Blogs
----
-
 ## About project
 LibreOffice is a large and complex office software and has an extensive CI system to ensure that new patches do not introduce bugs. A lot of unit tests are run in Jenkins when contributers submit their patches to gerrit. It usually takes hours to run all the tests across different platforms, especially in rush hours. Therefore, a better test selection method is needed to reduce the load in testing while maintaining a high software quality.
 

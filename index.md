@@ -84,10 +84,10 @@ I also want to thank the LibreOffice community who has been providing me a lot o
 At last, I'd like to thank Mozilla's [bugbug](https://github.com/mozilla/bugbug) and [rust-code-analysis](https://mozilla.github.io/rust-code-analysis/), whose work provides me a code base to work on.
 
 ## Further resources
-Mozilla's work: https://hacks.mozilla.org/2020/07/testing-firefox-more-efficiently-with-machine-learning/
+Mozilla's work: [https://hacks.mozilla.org/2020/07/testing-firefox-more-efficiently-with-machine-learning/](https://hacks.mozilla.org/2020/07/testing-firefox-more-efficiently-with-machine-learning/)
 
-bugbug: https://github.com/mozilla/bugbug
+bugbug: [https://github.com/mozilla/bugbug](https://github.com/mozilla/bugbug)
 
-rust-code-analysis: https://mozilla.github.io/rust-code-analysis/
+rust-code-analysis: [https://mozilla.github.io/rust-code-analysis/](https://mozilla.github.io/rust-code-analysis/)
 
 

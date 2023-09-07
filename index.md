@@ -39,9 +39,11 @@ A smart inference is built based on `testlabelselect` and `testoverall` predicti
 | Fail (Actual) | 10617            | 1054             |
 | Pass (Actual) | 30103            | 39815            |
 
-Currently, the smart inference is integrated into [Jenkins](https://ci.libreoffice.org/job/gerrit_master_ml/) to save computation. If a patch is likely to fail any unit test, the sequential [fast track](https://ci.libreoffice.org/job/gerrit_master_seq/) will be run because it is assumed that the patch will fail some unit tests and there is no need to run everything. If it is likely to pass, the [normal track]((https://ci.libreoffice.org/job/gerrit_master/)) will be run to ensure code correctness.
+Currently, the smart inference is integrated into [Jenkins](https://ci.libreoffice.org/job/gerrit_master_ml/) to save computation. If a patch is likely to fail any unit test, the sequential [fast track](https://ci.libreoffice.org/job/gerrit_master_seq/) will be run because it is assumed that the patch will fail some unit tests and there is no need to run everything. If it is likely to pass, the [normal track](https://ci.libreoffice.org/job/gerrit_master/) will be run to ensure code correctness.
 
 `testlabelselect` is not directly used to select unit tests because it is not able to capture all failures, about 5% failures will escape and it could cause severe problem.
+
+> **Note:** The tables are confusion matrices. Rows represent actual labels and columns represent predicted labels. For more information, please check this [link](https://medium.com/analytics-vidhya/what-is-a-confusion-matrix-d1c0f8feda5).
 
 ## Tasks
 - [x] [Join #tdf-infra](_posts/2023-05-31-week1.md#join-tdf-infra)
@@ -80,3 +82,12 @@ I'd like to thank Thorsten Behrens, Christian Lohmaier and Stéphane Guillou, wh
 I also want to thank the LibreOffice community who has been providing me a lot of feedbacks throughout the project.
 
 At last, I'd like to thank Mozilla's [bugbug](https://github.com/mozilla/bugbug) and [rust-code-analysis](https://mozilla.github.io/rust-code-analysis/), whose work provides me a code base to work on.
+
+## Further resources
+Mozilla's work: https://hacks.mozilla.org/2020/07/testing-firefox-more-efficiently-with-machine-learning/
+
+bugbug: https://github.com/mozilla/bugbug
+
+rust-code-analysis: https://mozilla.github.io/rust-code-analysis/
+
+
